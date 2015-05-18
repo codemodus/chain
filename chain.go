@@ -19,9 +19,9 @@ type Handler interface {
 // signature to be, subsequently, treated as a Handler.
 type HandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
 
-// ServeHTTPContext calls h(c, w, r)
-func (h HandlerFunc) ServeHTTPContext(c context.Context, w http.ResponseWriter, r *http.Request) {
-	h(c, w, r)
+// ServeHTTPContext calls h(ctx, w, r)
+func (h HandlerFunc) ServeHTTPContext(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	h(ctx, w, r)
 }
 
 // Chain holds the basic components used to order handler wraps.
