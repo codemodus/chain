@@ -79,3 +79,18 @@ func Bridge(h func(http.Handler) http.Handler) func(Handler) Handler {
 		)
 	}
 }
+
+type ctxKey int
+
+const (
+	postHandlerFuncCtxKey ctxKey = 0
+)
+
+func InitPHFC(ctx context.Context) context.Context {
+	return context.WithValue(ctx, postHandlerFuncCtxKey, &ctx)
+}
+
+func GetPHFC(ctx context.Context) (*context.Context, bool) {
+	cx, ok := ctx.Value(postHandlerFuncCtxKey).(*context.Context)
+	return cx, ok
+}
