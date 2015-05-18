@@ -82,8 +82,8 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 }
 
 // Bridge takes a standard http.Handler wrapping function and returns a
-// chain.Handler wrap.  This is useful for making non-context aware
-// http.Handler wraps compatible with the rest of a Chain.
+// Handler wrap.  This is useful for making non-context aware http.Handler
+// wraps compatible with the rest of a Chain.
 func Bridge(h func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(n Handler) Handler {
 		return HandlerFunc(
