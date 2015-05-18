@@ -16,11 +16,9 @@ func (h HandlerFunc) ServeHTTPContext(c context.Context, w http.ResponseWriter, 
 	h(c, w, r)
 }
 
-type Middleware func(Handler) Handler
-
 type Chain struct {
 	ctx context.Context
-	m   []Middleware
+	m   []func(Handler) Handler
 }
 
 type handlerAdapter struct {
@@ -32,23 +30,16 @@ func (ha handlerAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ha.h.ServeHTTPContext(ha.ctx, w, r)
 }
 
-type NoCtxMiddleware func(http.Handler) http.Handler
-
 type noCtxHandlerAdapter struct {
-	ctx context.Context
-	mw  NoCtxMiddleware
-	n   Handler
+	handlerAdapter
+	mw  func(http.Handler) http.Handler
 }
 
-func (ha noCtxHandlerAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ha.n.ServeHTTPContext(ha.ctx, w, r)
-}
-
-func New(ctx context.Context, mw ...Middleware) Chain {
+func New(ctx context.Context, mw ...func(Handler) Handler) Chain {
 	return Chain{ctx: ctx, m: mw}
 }
 
-func (c Chain) Append(mw ...Middleware) Chain {
+func (c Chain) Append(mw ...func(Handler) Handler) Chain {
 	c.m = append(c.m, mw...)
 	return c
 }
@@ -76,12 +67,14 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 }
 
 // Adapt http.Handler into a ContextHandler
-func Bridge(mw NoCtxMiddleware) Middleware {
+func Bridge(h func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(n Handler) Handler {
 		return HandlerFunc(
 			func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				x := noCtxHandlerAdapter{ctx: ctx, mw: mw, n: n}
-				mw(x).ServeHTTP(w, r)
+				x := noCtxHandlerAdapter{
+					mw: h, handlerAdapter: handlerAdapter{ctx: ctx, h: n},
+				}
+				h(x).ServeHTTP(w, r)
 			},
 		)
 	}
