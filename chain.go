@@ -82,10 +82,10 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 	return c.End(h)
 }
 
-// Bridge takes a standard http.Handler wrapping function and returns a
-// Handler wrap.  This is useful for making non-context aware http.Handler
-// wraps compatible with the rest of a Chain.
-func Bridge(h func(http.Handler) http.Handler) func(Handler) Handler {
+// Meld takes a standard http.Handler wrapping function and returns a Handler
+// wrap.  This is useful for making non-context aware http.Handler wraps
+// compatible with the rest of a Chain.
+func Meld(h func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(n Handler) Handler {
 		return HandlerFunc(
 			func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -96,24 +96,4 @@ func Bridge(h func(http.Handler) http.Handler) func(Handler) Handler {
 			},
 		)
 	}
-}
-
-type ctxKey int
-
-const (
-	postHandlerFuncCtxKey ctxKey = 0
-)
-
-// InitPHFC takes a context.Context and places a pointer to it within itself.
-// This is useful for carrying data into the post ServeHTTPContext area of
-// Handler wraps.  PHFC stands for Post HandlerFunc Context.
-func InitPHFC(ctx context.Context) context.Context {
-	return context.WithValue(ctx, postHandlerFuncCtxKey, &ctx)
-}
-
-// GetPHFC takes a context.Context and returns a pointer to the context.Context
-// set in InitPHFC.
-func GetPHFC(ctx context.Context) (*context.Context, bool) {
-	cx, ok := ctx.Value(postHandlerFuncCtxKey).(*context.Context)
-	return cx, ok
 }
