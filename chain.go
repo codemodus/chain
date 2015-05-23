@@ -1,7 +1,5 @@
-// Package chain enables flexible reordering and reuse of nested context-aware
-// functions.  Some convenience functions are also provided for easing the
-// passing of data through instances of Chain where the mutated data would
-// normally become out of scope.
+// Package chain enables flexible ordering and reuse of context-aware Handler
+// wrapper chains.
 package chain
 
 import (
@@ -10,14 +8,14 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Handler interface must be implemented for an object to be included within
-// a Chain.
+// Handler interface must be implemented for a function to be able to be
+// wrapped, or served.
 type Handler interface {
 	ServeHTTPContext(context.Context, http.ResponseWriter, *http.Request)
 }
 
-// HandlerFunc is an adapter which allows functions with the appropriate
-// signature to be, subsequently, treated as a Handler.
+// HandlerFunc is an adapter which allows a function with the appropriate
+// signature to be treated as a Handler.
 type HandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
 
 // ServeHTTPContext calls h(ctx, w, r)
@@ -25,10 +23,10 @@ func (h HandlerFunc) ServeHTTPContext(ctx context.Context, w http.ResponseWriter
 	h(ctx, w, r)
 }
 
-// Chain holds the basic components used to order handler wraps.
+// Chain holds the basic components used to order Handler wrapper chains.
 type Chain struct {
 	ctx context.Context
-	m   []func(Handler) Handler
+	hws []func(Handler) Handler
 }
 
 type handlerAdapter struct {
@@ -42,18 +40,18 @@ func (ha handlerAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type noCtxHandlerAdapter struct {
 	handlerAdapter
-	mw func(http.Handler) http.Handler
+	hw func(http.Handler) http.Handler
 }
 
-// New takes one or more Handler wraps, and returns a new Chain.
-func New(ctx context.Context, mw ...func(Handler) Handler) Chain {
-	return Chain{ctx: ctx, m: mw}
+// New takes one or more Handler wrappers, and returns a new Chain.
+func New(ctx context.Context, hws ...func(Handler) Handler) Chain {
+	return Chain{ctx: ctx, hws: hws}
 }
 
-// Append takes one or more Handler wraps, and appends it/them to the returned
-// Chain.
-func (c Chain) Append(mw ...func(Handler) Handler) Chain {
-	c.m = append(c.m, mw...)
+// Append takes one or more Handler wrappers, and appends the value to the
+// returned Chain.
+func (c Chain) Append(hws ...func(Handler) Handler) Chain {
+	c.hws = append(c.hws, hws...)
 	return c
 }
 
@@ -63,18 +61,17 @@ func (c Chain) End(h Handler) http.Handler {
 		return nil
 	}
 
-	for i := len(c.m) - 1; i >= 0; i-- {
-		h = c.m[i](h)
+	for i := len(c.hws) - 1; i >= 0; i-- {
+		h = c.hws[i](h)
 	}
 
-	f := handlerAdapter{
+	r := handlerAdapter{
 		ctx: c.ctx, h: h,
 	}
-	return f
+	return r
 }
 
-// EndFn takes a func that matches the HandlerFunc type, assigns it as such if
-// it is not already so, then passes it to End.
+// EndFn takes a func that matches the HandlerFunc type, then passes it to End.
 func (c Chain) EndFn(h HandlerFunc) http.Handler {
 	if h == nil {
 		return c.End(nil)
@@ -82,17 +79,17 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 	return c.End(h)
 }
 
-// Meld takes a standard http.Handler wrapping function and returns a Handler
-// wrap.  This is useful for making non-context aware http.Handler wraps
-// compatible with the rest of a Chain.
-func Meld(h func(http.Handler) http.Handler) func(Handler) Handler {
-	return func(n Handler) Handler {
+// Meld takes a http.Handler wrapper and returns a Handler wrapper.  This is
+// useful for making non-context aware http.Handler wrappers compatible with
+// the rest of a Handler Chain.
+func Meld(hw func(http.Handler) http.Handler) func(Handler) Handler {
+	return func(h Handler) Handler {
 		return HandlerFunc(
 			func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 				x := noCtxHandlerAdapter{
-					mw: h, handlerAdapter: handlerAdapter{ctx: ctx, h: n},
+					hw: hw, handlerAdapter: handlerAdapter{ctx: ctx, h: h},
 				}
-				h(x).ServeHTTP(w, r)
+				hw(x).ServeHTTP(w, r)
 			},
 		)
 	}
