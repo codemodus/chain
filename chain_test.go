@@ -2,6 +2,7 @@ package chain_test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +19,7 @@ var (
 	bTxtEnd = []byte("_END_")
 )
 
-func wrap0(n chain.Handler) chain.Handler {
+func ctxWrapper0(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		w.Write(bTxt0)
 		n.ServeHTTPContext(ctx, w, r)
@@ -26,7 +27,7 @@ func wrap0(n chain.Handler) chain.Handler {
 	})
 }
 
-func wrap1(n chain.Handler) chain.Handler {
+func ctxWrapper1(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		w.Write(bTxt1)
 		n.ServeHTTPContext(ctx, w, r)
@@ -34,7 +35,7 @@ func wrap1(n chain.Handler) chain.Handler {
 	})
 }
 
-func stdWrapA(n http.Handler) http.Handler {
+func stdWrapperA(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write(bTxtA)
 		n.ServeHTTP(w, r)
@@ -42,25 +43,25 @@ func stdWrapA(n http.Handler) http.Handler {
 	})
 }
 
-func emptyWrap0(n chain.Handler) chain.Handler {
+func emptyCtxWrapper(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		n.ServeHTTPContext(ctx, w, r)
 	})
 }
 
-func end0(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func ctxEndPoint(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	w.Write(bTxtEnd)
 	return
 }
 
 func TestChain(t *testing.T) {
-	c0 := chain.New(context.Background(), wrap0)
-	c1 := c0.Append(wrap1, chain.Meld(stdWrapA))
+	c0 := chain.New(context.Background(), ctxWrapper0)
+	c1 := c0.Append(ctxWrapper1, chain.Meld(stdWrapperA))
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
-	m.Handle(r0, c0.EndFn(end0))
-	m.Handle(r1, c1.EndFn(end0))
+	m.Handle(r0, c0.EndFn(ctxEndPoint))
+	m.Handle(r1, c1.EndFn(ctxEndPoint))
 	s := httptest.NewServer(m)
 
 	re0, err := http.Get(s.URL + r0)
@@ -103,7 +104,7 @@ func TestChain(t *testing.T) {
 }
 
 func TestNilEnd(t *testing.T) {
-	c0 := chain.New(context.Background(), emptyWrap0)
+	c0 := chain.New(context.Background(), emptyCtxWrapper)
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
@@ -135,4 +136,46 @@ func TestNilEnd(t *testing.T) {
 	if got != want {
 		t.Errorf("Status Code = %v, want %v", got, want)
 	}
+}
+
+func Example() {
+	// ctxWrapper0 writes "0" to the response body before and after ServeHTTPContext() is called.
+	// Both ctxWrapper1 writes "1", and stdWrapperA writes "A", in the same manner (though, stdWrapperA calls ServeHTTP()).
+	// ctxEndPoint writes "_END_" to the response body and returns.
+	chain0 := chain.New(context.Background(), ctxWrapper0)
+	chain1 := chain0.Append(ctxWrapper1, chain.Meld(stdWrapperA))
+
+	m := http.NewServeMux()
+	m.Handle("/test0", chain0.EndFn(ctxEndPoint))
+	m.Handle("/test01AEnd", chain1.EndFn(ctxEndPoint))
+
+	s := httptest.NewServer(m)
+
+	resp0, err := http.Get(s.URL + "/test0")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp0.Body.Close()
+	rBody0, err := ioutil.ReadAll(resp0.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	resp1, err := http.Get(s.URL + "/test01AEnd")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp1.Body.Close()
+	rBody1, err := ioutil.ReadAll(resp1.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Chain 0:", string(rBody0))
+	fmt.Println("Chain 1:", string(rBody1))
+	// The output shows the chain order and reuse.
+
+	// Output:
+	// Chain 0: 0_END_0
+	// Chain 1: 01A_END_A10
 }
