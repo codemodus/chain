@@ -1,5 +1,6 @@
 // Package chain enables flexible ordering and reuse of context-aware Handler
-// wrapper chains.
+// wrapper chains.  Review the test file for examples covering chain
+// manipulation and a way to pass a context across scopes.
 package chain
 
 import (

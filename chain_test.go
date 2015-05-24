@@ -19,41 +19,6 @@ var (
 	bTxtEnd = []byte("_END_")
 )
 
-func ctxHandlerWrapper0(n chain.Handler) chain.Handler {
-	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		w.Write(bTxt0)
-		n.ServeHTTPContext(ctx, w, r)
-		w.Write(bTxt0)
-	})
-}
-
-func ctxHandlerWrapper1(n chain.Handler) chain.Handler {
-	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		w.Write(bTxt1)
-		n.ServeHTTPContext(ctx, w, r)
-		w.Write(bTxt1)
-	})
-}
-
-func httpHandlerWrapperA(n http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(bTxtA)
-		n.ServeHTTP(w, r)
-		w.Write(bTxtA)
-	})
-}
-
-func emptyCtxHandlerWrapper(n chain.Handler) chain.Handler {
-	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		n.ServeHTTPContext(ctx, w, r)
-	})
-}
-
-func ctxHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	w.Write(bTxtEnd)
-	return
-}
-
 func TestChain(t *testing.T) {
 	c0 := chain.New(context.Background(), ctxHandlerWrapper0)
 	c1 := c0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
@@ -138,6 +103,48 @@ func TestNilEnd(t *testing.T) {
 	}
 }
 
+func TestContextContinuity(t *testing.T) {
+	tStr := "test_string"
+	ctx := context.Background()
+	ctx = initPHFC(ctx)
+	if conCtx, ok := getPHFC(ctx); ok {
+		*conCtx = setString(*conCtx, tStr)
+	}
+
+	c0 := chain.New(ctx, ctxContinuityWrapper, ctxHandlerWrapper0)
+	c0 = c0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
+	m := http.NewServeMux()
+	r0 := "/0"
+	m.Handle(r0, c0.EndFn(ctxContinuityHandler))
+	s := httptest.NewServer(m)
+
+	re0, err := http.Get(s.URL + r0)
+	if err != nil {
+		t.Error(err)
+	}
+	defer re0.Body.Close()
+	rb0, err := ioutil.ReadAll(re0.Body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	bb := &bytes.Buffer{}
+	bb.Write(bTxt0)
+	bb.Write(bTxt1)
+	bb.Write(bTxtA)
+	bb.Write([]byte(tStr))
+	bb.Write(bTxtA)
+	bb.Write(bTxt1)
+	bb.Write(bTxt0)
+	bb.Write([]byte(tStr))
+
+	want := string(bb.Bytes())
+	got := string(rb0)
+	if got != want {
+		t.Errorf("Body = %v, want %v", got, want)
+	}
+}
+
 func Example() {
 	// ctxHandlerWrapper0 writes "0" to the response body before and after
 	// ServeHTTPContext() is called.
@@ -182,4 +189,90 @@ func Example() {
 	// Output:
 	// Chain 0 Body: 01_END_10
 	// Chain 1 Body: 01A1_END_1A10
+}
+
+func ctxHandlerWrapper0(n chain.Handler) chain.Handler {
+	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Write(bTxt0)
+		n.ServeHTTPContext(ctx, w, r)
+		w.Write(bTxt0)
+	})
+}
+
+func ctxHandlerWrapper1(n chain.Handler) chain.Handler {
+	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Write(bTxt1)
+		n.ServeHTTPContext(ctx, w, r)
+		w.Write(bTxt1)
+	})
+}
+
+func httpHandlerWrapperA(n http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(bTxtA)
+		n.ServeHTTP(w, r)
+		w.Write(bTxtA)
+	})
+}
+
+func emptyCtxHandlerWrapper(n chain.Handler) chain.Handler {
+	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		n.ServeHTTPContext(ctx, w, r)
+	})
+}
+
+func ctxHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	w.Write(bTxtEnd)
+	return
+}
+
+func ctxContinuityWrapper(n chain.Handler) chain.Handler {
+	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		n.ServeHTTPContext(ctx, w, r)
+
+		if conCtx, ok := getPHFC(ctx); ok {
+			if s, ok := getString(*conCtx); ok {
+				w.Write([]byte(s))
+			}
+		}
+	})
+}
+
+func ctxContinuityHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	if conCtx, ok := getPHFC(ctx); ok {
+		if s, ok := getString(*conCtx); ok {
+			w.Write([]byte(s))
+		}
+	}
+	return
+}
+
+type reqCtxKey int
+
+const (
+	postHandlerFuncCtxKey reqCtxKey = iota
+	keyString
+)
+
+func setString(ctx context.Context, s string) context.Context {
+	return context.WithValue(ctx, keyString, s)
+}
+
+func getString(ctx context.Context) (string, bool) {
+	s, ok := ctx.Value(keyString).(string)
+	return s, ok
+}
+
+// initPHFC takes a context.Context and places a pointer to it within itself.
+// This is useful for carrying data into the post ServeHTTPContext area of
+// Handler wraps.  PHFC stands for Post HandlerFunc Context.
+func initPHFC(ctx context.Context) context.Context {
+	return context.WithValue(ctx, postHandlerFuncCtxKey, &ctx)
+}
+
+// getPHFC takes a context.Context and returns a pointer to the context.Context
+// set in InitPHFC.
+func getPHFC(ctx context.Context) (*context.Context, bool) {
+	cx, ok := ctx.Value(postHandlerFuncCtxKey).(*context.Context)
+	return cx, ok
 }
