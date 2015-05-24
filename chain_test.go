@@ -139,8 +139,10 @@ func TestNilEnd(t *testing.T) {
 }
 
 func Example() {
-	// ctxWrapper0 writes "0" to the response body before and after ServeHTTPContext() is called.
-	// Both ctxWrapper1 writes "1", and stdWrapperA writes "A", in the same manner (though, stdWrapperA calls ServeHTTP()).
+	// ctxWrapper0 writes "0" to the response body before and after
+	// ServeHTTPContext() is called.
+	// ctxWrapper1 writes "1", and stdWrapperA writes "A", in the same manner
+	// (though, stdWrapperA calls ServeHTTP()).
 	// ctxEndPoint writes "_END_" to the response body and returns.
 	chain0 := chain.New(context.Background(), ctxWrapper0)
 	chain1 := chain0.Append(ctxWrapper1, chain.Meld(stdWrapperA))
@@ -173,7 +175,6 @@ func Example() {
 
 	fmt.Println("Chain 0:", string(rBody0))
 	fmt.Println("Chain 1:", string(rBody1))
-	// The output shows the chain order and reuse.
 
 	// Output:
 	// Chain 0: 0_END_0
