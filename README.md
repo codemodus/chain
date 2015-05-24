@@ -2,10 +2,8 @@
 --
     import "github.com/codemodus/chain"
 
-Package chain enables flexible reordering and reuse of nested context-aware
-functions. Some convenience functions are also provided for easing the passing
-of data through instances of Chain where the mutated data would normally become
-out of scope.
+Package chain enables flexible ordering and reuse of context-aware Handler
+wrapper chains.
 
 ## Usage
 
