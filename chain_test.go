@@ -306,7 +306,7 @@ func BenchmarkChain10(b *testing.B) {
 		if err != nil {
 			b.Error(err)
 		}
-		defer re0.Body.Close()
+		re0.Body.Close()
 	}
 }
 
@@ -331,6 +331,6 @@ func BenchmarkNest10(b *testing.B) {
 		if err != nil {
 			b.Error(err)
 		}
-		defer re0.Body.Close()
+		re0.Body.Close()
 	}
 }
