@@ -19,7 +19,7 @@ var (
 	bTxtEnd = []byte("_END_")
 )
 
-func ctxWrapper0(n chain.Handler) chain.Handler {
+func ctxHandlerWrapper0(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		w.Write(bTxt0)
 		n.ServeHTTPContext(ctx, w, r)
@@ -27,7 +27,7 @@ func ctxWrapper0(n chain.Handler) chain.Handler {
 	})
 }
 
-func ctxWrapper1(n chain.Handler) chain.Handler {
+func ctxHandlerWrapper1(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		w.Write(bTxt1)
 		n.ServeHTTPContext(ctx, w, r)
@@ -35,7 +35,7 @@ func ctxWrapper1(n chain.Handler) chain.Handler {
 	})
 }
 
-func stdWrapperA(n http.Handler) http.Handler {
+func httpHandlerWrapperA(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write(bTxtA)
 		n.ServeHTTP(w, r)
@@ -43,25 +43,25 @@ func stdWrapperA(n http.Handler) http.Handler {
 	})
 }
 
-func emptyCtxWrapper(n chain.Handler) chain.Handler {
+func emptyCtxHandlerWrapper(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		n.ServeHTTPContext(ctx, w, r)
 	})
 }
 
-func ctxEndPoint(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func ctxHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	w.Write(bTxtEnd)
 	return
 }
 
 func TestChain(t *testing.T) {
-	c0 := chain.New(context.Background(), ctxWrapper0)
-	c1 := c0.Append(ctxWrapper1, chain.Meld(stdWrapperA))
+	c0 := chain.New(context.Background(), ctxHandlerWrapper0)
+	c1 := c0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
-	m.Handle(r0, c0.EndFn(ctxEndPoint))
-	m.Handle(r1, c1.EndFn(ctxEndPoint))
+	m.Handle(r0, c0.EndFn(ctxHandler))
+	m.Handle(r1, c1.EndFn(ctxHandler))
 	s := httptest.NewServer(m)
 
 	re0, err := http.Get(s.URL + r0)
@@ -104,7 +104,7 @@ func TestChain(t *testing.T) {
 }
 
 func TestNilEnd(t *testing.T) {
-	c0 := chain.New(context.Background(), emptyCtxWrapper)
+	c0 := chain.New(context.Background(), emptyCtxHandlerWrapper)
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
@@ -139,17 +139,19 @@ func TestNilEnd(t *testing.T) {
 }
 
 func Example() {
-	// ctxWrapper0 writes "0" to the response body before and after
+	// ctxHandlerWrapper0 writes "0" to the response body before and after
 	// ServeHTTPContext() is called.
-	// ctxWrapper1 writes "1", and stdWrapperA writes "A", in the same manner
-	// (though, stdWrapperA calls ServeHTTP()).
-	// ctxEndPoint writes "_END_" to the response body and returns.
-	chain0 := chain.New(context.Background(), ctxWrapper0)
-	chain1 := chain0.Append(ctxWrapper1, chain.Meld(stdWrapperA))
+	// ctxHandlerWrapper1 writes "1" to the response body before and after
+	// ServeHTTPContext() is called.
+	// httpHandlerWrapperA writes "A" to the response body before and after
+	// ServeHTTP() is called.
+	// ctxHandler writes "_END_" to the response body and returns.
+	chain0 := chain.New(context.Background(), ctxHandlerWrapper0)
+	chain1 := chain0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
 
 	m := http.NewServeMux()
-	m.Handle("/test0", chain0.EndFn(ctxEndPoint))
-	m.Handle("/test01AEnd", chain1.EndFn(ctxEndPoint))
+	m.Handle("/test0", chain0.EndFn(ctxHandler))
+	m.Handle("/test01AEnd", chain1.EndFn(ctxHandler))
 
 	s := httptest.NewServer(m)
 
