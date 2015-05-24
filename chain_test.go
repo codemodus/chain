@@ -247,6 +247,19 @@ func ctxContinuityHandler(ctx context.Context, w http.ResponseWriter, r *http.Re
 	return
 }
 
+func nilHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	return
+}
+
+type adapter struct {
+	ctx context.Context
+	h   chain.Handler
+}
+
+func (a *adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.h.ServeHTTPContext(a.ctx, w, r)
+}
+
 type reqCtxKey int
 
 const (
@@ -275,4 +288,49 @@ func initPHFC(ctx context.Context) context.Context {
 func getPHFC(ctx context.Context) (*context.Context, bool) {
 	cx, ok := ctx.Value(postHandlerFuncCtxKey).(*context.Context)
 	return cx, ok
+}
+
+func BenchmarkChain10(b *testing.B) {
+	c0 := chain.New(context.Background(), emptyCtxHandlerWrapper,
+		emptyCtxHandlerWrapper, emptyCtxHandlerWrapper, emptyCtxHandlerWrapper,
+		emptyCtxHandlerWrapper, emptyCtxHandlerWrapper, emptyCtxHandlerWrapper,
+		emptyCtxHandlerWrapper, emptyCtxHandlerWrapper, emptyCtxHandlerWrapper)
+	m := http.NewServeMux()
+	m.Handle("/", c0.EndFn(nilHandler))
+	s := httptest.NewServer(m)
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		re0, err := http.Get(s.URL + "/")
+		if err != nil {
+			b.Error(err)
+		}
+		defer re0.Body.Close()
+	}
+}
+
+func BenchmarkNest10(b *testing.B) {
+	h := &adapter{
+		ctx: context.Background(),
+		h: emptyCtxHandlerWrapper(emptyCtxHandlerWrapper(
+			emptyCtxHandlerWrapper(emptyCtxHandlerWrapper(
+				emptyCtxHandlerWrapper(emptyCtxHandlerWrapper(
+					emptyCtxHandlerWrapper(emptyCtxHandlerWrapper(
+						emptyCtxHandlerWrapper(emptyCtxHandlerWrapper(
+							chain.HandlerFunc(nilHandler))))))))))),
+	}
+	m := http.NewServeMux()
+	m.Handle("/", h)
+	s := httptest.NewServer(m)
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		re0, err := http.Get(s.URL + "/")
+		if err != nil {
+			b.Error(err)
+		}
+		defer re0.Body.Close()
+	}
 }
