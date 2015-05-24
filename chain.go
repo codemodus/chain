@@ -58,7 +58,7 @@ func (c Chain) Append(hws ...func(Handler) Handler) Chain {
 // End takes a Handler and returns an http.Handler.
 func (c Chain) End(h Handler) http.Handler {
 	if h == nil {
-		h = HandlerFunc(noContentHandler)
+		h = HandlerFunc(nilHandler)
 	}
 
 	for i := len(c.hws) - 1; i >= 0; i-- {
@@ -74,7 +74,7 @@ func (c Chain) End(h Handler) http.Handler {
 // EndFn takes a func that matches the HandlerFunc type, then passes it to End.
 func (c Chain) EndFn(h HandlerFunc) http.Handler {
 	if h == nil {
-		h = HandlerFunc(noContentHandler)
+		h = HandlerFunc(nilHandler)
 	}
 	return c.End(h)
 }
@@ -95,7 +95,6 @@ func Meld(hw func(http.Handler) http.Handler) func(Handler) Handler {
 	}
 }
 
-func noContentHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+func nilHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	return
 }

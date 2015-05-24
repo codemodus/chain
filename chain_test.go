@@ -119,7 +119,7 @@ func TestNilEnd(t *testing.T) {
 	defer re0.Body.Close()
 	rs0 := re0.StatusCode
 
-	want := http.StatusNoContent
+	want := http.StatusOK
 	got := rs0
 	if got != want {
 		t.Errorf("Status Code = %v, want %v", got, want)
