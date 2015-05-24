@@ -146,16 +146,17 @@ func Example() {
 	// httpHandlerWrapperA writes "A" to the response body before and after
 	// ServeHTTP() is called.
 	// ctxHandler writes "_END_" to the response body and returns.
-	chain0 := chain.New(context.Background(), ctxHandlerWrapper0)
-	chain1 := chain0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
+	ctx := context.Background()
+	chain0 := chain.New(ctx, ctxHandlerWrapper0, ctxHandlerWrapper1)
+	chain1 := chain0.Append(chain.Meld(httpHandlerWrapperA), ctxHandlerWrapper1)
 
 	m := http.NewServeMux()
-	m.Handle("/test0", chain0.EndFn(ctxHandler))
-	m.Handle("/test01AEnd", chain1.EndFn(ctxHandler))
+	m.Handle("/test/01_End", chain0.EndFn(ctxHandler))
+	m.Handle("/test/01A1_End", chain1.EndFn(ctxHandler))
 
 	s := httptest.NewServer(m)
 
-	resp0, err := http.Get(s.URL + "/test0")
+	resp0, err := http.Get(s.URL + "/test/01_End")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -165,7 +166,7 @@ func Example() {
 		fmt.Println(err)
 	}
 
-	resp1, err := http.Get(s.URL + "/test01AEnd")
+	resp1, err := http.Get(s.URL + "/test/01A1_End")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -175,10 +176,10 @@ func Example() {
 		fmt.Println(err)
 	}
 
-	fmt.Println("Chain 0:", string(rBody0))
-	fmt.Println("Chain 1:", string(rBody1))
+	fmt.Println("Chain 0 Body:", string(rBody0))
+	fmt.Println("Chain 1 Body:", string(rBody1))
 
 	// Output:
-	// Chain 0: 0_END_0
-	// Chain 1: 01A_END_A10
+	// Chain 0 Body: 01_END_10
+	// Chain 1 Body: 01A1_END_1A10
 }
