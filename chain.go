@@ -1,11 +1,10 @@
-// Package chain aids in the ordering and reuse of context-aware Handler
-// wrapper chains.
+// Package chain aids the composition of context-aware Handler wrapper chains.
 //
 // Review the test file for examples covering chain manipulation, and a way to
 // pass a context across scopes (for common  use cases race conditions will not
 // be encountered, but caution is warranted). Benchmarks are available showing
 // a negligible increase in processing time and memory consumption, and no
-// increase in memory allocations relative to nesting functions without an aid.
+// increase in memory allocations compared to nesting functions without an aid.
 package chain
 
 import (
@@ -58,6 +57,13 @@ func New(ctx context.Context, hws ...func(Handler) Handler) Chain {
 // returned Chain.
 func (c Chain) Append(hws ...func(Handler) Handler) Chain {
 	c.hws = append(c.hws, hws...)
+	return c
+}
+
+// Prepend takes one or more Handler wrappers, and prepends the value to the
+// returned Chain.
+func (c Chain) Prepend(hws ...func(Handler) Handler) Chain {
+	c.hws = append(hws, c.hws...)
 	return c
 }
 

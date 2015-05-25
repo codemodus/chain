@@ -20,24 +20,22 @@ var (
 )
 
 func Example() {
-	// ctxHandlerWrapper0 writes "0" to the response body before and after
-	// ServeHTTPContext() is called.
-	// ctxHandlerWrapper1 writes "1" to the response body before and after
-	// ServeHTTPContext() is called.
-	// httpHandlerWrapperA writes "A" to the response body before and after
-	// ServeHTTP() is called.
+	// Each wrapper writes either "0", "1", or "A" to the response body before
+	// and after ServeHTTPContext() is called.
 	// ctxHandler writes "_END_" to the response body and returns.
 	ctx := context.Background()
-	chain0 := chain.New(ctx, ctxHandlerWrapper0, ctxHandlerWrapper1)
+	chain0 := chain.New(ctx, ctxHandlerWrapper0, ctxHandlerWrapper0)
 	chain1 := chain0.Append(chain.Meld(httpHandlerWrapperA), ctxHandlerWrapper1)
+	chain2 := chain1.Prepend(ctxHandlerWrapper1)
 
 	m := http.NewServeMux()
-	m.Handle("/test/01_End", chain0.EndFn(ctxHandler))
-	m.Handle("/test/01A1_End", chain1.EndFn(ctxHandler))
+	m.Handle("/test/00_End", chain0.EndFn(ctxHandler))
+	m.Handle("/test/00A1_End", chain1.EndFn(ctxHandler))
+	m.Handle("/test/100A1_End", chain2.EndFn(ctxHandler))
 
 	s := httptest.NewServer(m)
 
-	resp0, err := http.Get(s.URL + "/test/01_End")
+	resp0, err := http.Get(s.URL + "/test/00_End")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -47,7 +45,7 @@ func Example() {
 		fmt.Println(err)
 	}
 
-	resp1, err := http.Get(s.URL + "/test/01A1_End")
+	resp1, err := http.Get(s.URL + "/test/00A1_End")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -57,17 +55,30 @@ func Example() {
 		fmt.Println(err)
 	}
 
+	resp2, err := http.Get(s.URL + "/test/100A1_End")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp2.Body.Close()
+	rBody2, err := ioutil.ReadAll(resp2.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	fmt.Println("Chain 0 Body:", string(rBody0))
 	fmt.Println("Chain 1 Body:", string(rBody1))
+	fmt.Println("Chain 2 Body:", string(rBody2))
 
 	// Output:
-	// Chain 0 Body: 01_END_10
-	// Chain 1 Body: 01A1_END_1A10
+	// Chain 0 Body: 00_END_00
+	// Chain 1 Body: 00A1_END_1A00
+	// Chain 2 Body: 100A1_END_1A001
 }
 
 func TestChain(t *testing.T) {
 	c0 := chain.New(context.Background(), ctxHandlerWrapper0)
 	c1 := c0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
+	c0 = c0.Prepend(ctxHandlerWrapper1)
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
@@ -96,9 +107,11 @@ func TestChain(t *testing.T) {
 	}
 
 	bb := &bytes.Buffer{}
+	bb.Write(bTxt1)
 	bb.Write(bTxt0)
 	bb.Write(bTxtEnd)
 	bb.Write(bTxt0)
+	bb.Write(bTxt1)
 	bb.Write(bTxt0)
 	bb.Write(bTxt1)
 	bb.Write(bTxtA)
