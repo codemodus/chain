@@ -13,13 +13,13 @@ lightweight and complete solution.
 ## Usage
 
 ```
-func Meld(hw func(http.Handler) http.Handler) func(Handler) Handler
+func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler
 type Chain
     func New(ctx context.Context, hws ...func(Handler) Handler) Chain
     func (c Chain) Append(hws ...func(Handler) Handler) Chain
     func (c Chain) End(h Handler) http.Handler
     func (c Chain) EndFn(h HandlerFunc) http.Handler
-    func (c Chain) Prepend(hws ...func(Handler) Handler) Chain
+    func (c Chain) Merge(cs ...Chain) Chain
     func (c Chain) SetContext(ctx context.Context) Chain
 type Handler
 type HandlerFunc
@@ -43,8 +43,9 @@ func main() {
     // Add common data to the context.
     
     chain0 := chain.New(ctx, firstWrapper, secondWrapper)
-    chain1 := chain0.Append(chain.Meld(httpHandlerWrapper), fourthWrapper)
-    chain2 := chain1.Prepend(beforeFirstWrapper)
+    chain1 := chain0.Append(chain.Convert(httpHandlerWrapper), fourthWrapper)
+    chain2 := chain.New(ctx, beforeFirstWrapper)
+    chain2 = chain2.Merge(chain1)
 
     m := http.NewServeMux()
     m.Handle("/1w2w_End1", chain0.EndFn(ctxHandler))

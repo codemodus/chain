@@ -68,10 +68,12 @@ func (c Chain) Append(hws ...func(Handler) Handler) Chain {
 	return c
 }
 
-// Prepend takes one or more Handler wrappers, and prepends the value to the
-// returned Chain.
-func (c Chain) Prepend(hws ...func(Handler) Handler) Chain {
-	c.hws = append(hws, c.hws...)
+// Merge takes one or more Chains, and appends the value's Handler wrappers
+// to the returned Chain.
+func (c Chain) Merge(cs ...Chain) Chain {
+	for k := range cs {
+		c.hws = append(c.hws, cs[k].hws...)
+	}
 	return c
 }
 
@@ -99,10 +101,10 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 	return c.End(h)
 }
 
-// Meld takes a http.Handler wrapper and returns a Handler wrapper.  This is
+// Convert takes a http.Handler wrapper and returns a Handler wrapper.  This is
 // useful for making non-context aware http.Handler wrappers compatible with
 // the rest of a Handler Chain.
-func Meld(hw func(http.Handler) http.Handler) func(Handler) Handler {
+func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(h Handler) Handler {
 		return HandlerFunc(
 			func(ctx context.Context, w http.ResponseWriter, r *http.Request) {

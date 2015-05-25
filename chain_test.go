@@ -25,8 +25,9 @@ func Example() {
 	// ctxHandler writes "_END_" to the response body and returns.
 	ctx := context.Background()
 	chain0 := chain.New(ctx, ctxHandlerWrapper0, ctxHandlerWrapper0)
-	chain1 := chain0.Append(chain.Meld(httpHandlerWrapperA), ctxHandlerWrapper1)
-	chain2 := chain1.Prepend(ctxHandlerWrapper1)
+	chain1 := chain0.Append(chain.Convert(httpHandlerWrapperA), ctxHandlerWrapper1)
+	chain2 := chain.New(ctx, ctxHandlerWrapper1)
+	chain2 = chain2.Merge(chain1)
 
 	m := http.NewServeMux()
 	m.Handle("/test/00_End", chain0.EndFn(ctxHandler))
@@ -76,9 +77,11 @@ func Example() {
 }
 
 func TestChain(t *testing.T) {
-	c0 := chain.New(context.Background(), ctxHandlerWrapper0)
-	c1 := c0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
-	c0 = c0.Prepend(ctxHandlerWrapper1)
+	ctx := context.Background()
+	c0 := chain.New(ctx, ctxHandlerWrapper0)
+	c1 := c0.Append(ctxHandlerWrapper1, chain.Convert(httpHandlerWrapperA))
+	cTmp := chain.New(ctx, ctxHandlerWrapper1)
+	c0 = cTmp.Merge(c0)
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
@@ -171,7 +174,7 @@ func TestContextContinuity(t *testing.T) {
 	}
 
 	c0 := chain.New(ctx, ctxContinuityWrapper, ctxHandlerWrapper0)
-	c0 = c0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
+	c0 = c0.Append(ctxHandlerWrapper1, chain.Convert(httpHandlerWrapperA))
 	m := http.NewServeMux()
 	r0 := "/0"
 	m.Handle(r0, c0.EndFn(ctxContinuityHandler))
