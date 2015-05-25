@@ -19,6 +19,52 @@ var (
 	bTxtEnd = []byte("_END_")
 )
 
+func Example() {
+	// ctxHandlerWrapper0 writes "0" to the response body before and after
+	// ServeHTTPContext() is called.
+	// ctxHandlerWrapper1 writes "1" to the response body before and after
+	// ServeHTTPContext() is called.
+	// httpHandlerWrapperA writes "A" to the response body before and after
+	// ServeHTTP() is called.
+	// ctxHandler writes "_END_" to the response body and returns.
+	ctx := context.Background()
+	chain0 := chain.New(ctx, ctxHandlerWrapper0, ctxHandlerWrapper1)
+	chain1 := chain0.Append(chain.Meld(httpHandlerWrapperA), ctxHandlerWrapper1)
+
+	m := http.NewServeMux()
+	m.Handle("/test/01_End", chain0.EndFn(ctxHandler))
+	m.Handle("/test/01A1_End", chain1.EndFn(ctxHandler))
+
+	s := httptest.NewServer(m)
+
+	resp0, err := http.Get(s.URL + "/test/01_End")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp0.Body.Close()
+	rBody0, err := ioutil.ReadAll(resp0.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	resp1, err := http.Get(s.URL + "/test/01A1_End")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp1.Body.Close()
+	rBody1, err := ioutil.ReadAll(resp1.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Chain 0 Body:", string(rBody0))
+	fmt.Println("Chain 1 Body:", string(rBody1))
+
+	// Output:
+	// Chain 0 Body: 01_END_10
+	// Chain 1 Body: 01A1_END_1A10
+}
+
 func TestChain(t *testing.T) {
 	c0 := chain.New(context.Background(), ctxHandlerWrapper0)
 	c1 := c0.Append(ctxHandlerWrapper1, chain.Meld(httpHandlerWrapperA))
@@ -143,52 +189,6 @@ func TestContextContinuity(t *testing.T) {
 	if got != want {
 		t.Errorf("Body = %v, want %v", got, want)
 	}
-}
-
-func Example() {
-	// ctxHandlerWrapper0 writes "0" to the response body before and after
-	// ServeHTTPContext() is called.
-	// ctxHandlerWrapper1 writes "1" to the response body before and after
-	// ServeHTTPContext() is called.
-	// httpHandlerWrapperA writes "A" to the response body before and after
-	// ServeHTTP() is called.
-	// ctxHandler writes "_END_" to the response body and returns.
-	ctx := context.Background()
-	chain0 := chain.New(ctx, ctxHandlerWrapper0, ctxHandlerWrapper1)
-	chain1 := chain0.Append(chain.Meld(httpHandlerWrapperA), ctxHandlerWrapper1)
-
-	m := http.NewServeMux()
-	m.Handle("/test/01_End", chain0.EndFn(ctxHandler))
-	m.Handle("/test/01A1_End", chain1.EndFn(ctxHandler))
-
-	s := httptest.NewServer(m)
-
-	resp0, err := http.Get(s.URL + "/test/01_End")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp0.Body.Close()
-	rBody0, err := ioutil.ReadAll(resp0.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	resp1, err := http.Get(s.URL + "/test/01A1_End")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp1.Body.Close()
-	rBody1, err := ioutil.ReadAll(resp1.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println("Chain 0 Body:", string(rBody0))
-	fmt.Println("Chain 1 Body:", string(rBody1))
-
-	// Output:
-	// Chain 0 Body: 01_END_10
-	// Chain 1 Body: 01A1_END_1A10
 }
 
 func ctxHandlerWrapper0(n chain.Handler) chain.Handler {
