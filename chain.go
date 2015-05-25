@@ -48,9 +48,17 @@ type noCtxHandlerAdapter struct {
 	hw func(http.Handler) http.Handler
 }
 
-// New takes one or more Handler wrappers, and returns a new Chain.
+// New takes a context.Context and one or more Handler wrappers, and returns
+// a new Chain.
 func New(ctx context.Context, hws ...func(Handler) Handler) Chain {
 	return Chain{ctx: ctx, hws: hws}
+}
+
+// SetContext takes a context.Context, and updates the stored/initial context
+// of the returned Chain.
+func (c Chain) SetContext(ctx context.Context) Chain {
+	c.ctx = ctx
+	return c
 }
 
 // Append takes one or more Handler wrappers, and appends the value to the

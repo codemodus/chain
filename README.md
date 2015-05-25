@@ -20,6 +20,7 @@ type Chain
     func (c Chain) End(h Handler) http.Handler
     func (c Chain) EndFn(h HandlerFunc) http.Handler
     func (c Chain) Prepend(hws ...func(Handler) Handler) Chain
+    func (c Chain) SetContext(ctx context.Context) Chain
 type Handler
 type HandlerFunc
     func (h HandlerFunc) ServeHTTPContext(ctx context.Context, w http.ResponseWriter, r *http.Request)
@@ -32,7 +33,7 @@ import (
     // ...
 
     "github.com/codemodus/chain"
-	"golang.org/x/net/context"
+    "golang.org/x/net/context"
 )
 
 func main() {
@@ -41,15 +42,15 @@ func main() {
     ctx := context.Background()
     // Add common data to the context.
     
-	chain0 := chain.New(ctx, firstWrapper, secondWrapper)
-	chain1 := chain0.Append(chain.Meld(httpHandlerWrapper), fourthWrapper)
-	chain2 := chain1.Prepend(beforeFirstWrapper)
+    chain0 := chain.New(ctx, firstWrapper, secondWrapper)
+    chain1 := chain0.Append(chain.Meld(httpHandlerWrapper), fourthWrapper)
+    chain2 := chain1.Prepend(beforeFirstWrapper)
 
-	m := http.NewServeMux()
-	m.Handle("/1w2w_End1", chain0.EndFn(ctxHandler))
+    m := http.NewServeMux()
+    m.Handle("/1w2w_End1", chain0.EndFn(ctxHandler))
     m.Handle("/1w2w_End2", chain0.EndFn(anotherCtxHandler))
-	m.Handle("/1w2wHw4w_End1", chain1.EndFn(ctxHandler))
-	m.Handle("/0w1w2wHw4w_End1", chain2.EndFn(ctxHandler))
+    m.Handle("/1w2wHw4w_End1", chain1.EndFn(ctxHandler))
+    m.Handle("/0w1w2wHw4w_End1", chain2.EndFn(ctxHandler))
 
     // ,..
 }
@@ -59,14 +60,14 @@ func main() {
 
 ```go
 func firstWrapper(n chain.Handler) chain.Handler {
-	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+    return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
         // ...
         
         ctx = setString(ctx, "Send this down the line.")
-		
-		n.ServeHTTPContext(ctx, w, r)
-		
-		// ...
+    	
+        n.ServeHTTPContext(ctx, w, r)
+    	
+        // ...
     })
 }
 ```
@@ -75,12 +76,12 @@ func firstWrapper(n chain.Handler) chain.Handler {
 
 ```go
 func ctxHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	// ...
-	
-	if s, ok := getString(ctx); ok {
+    // ...
+    
+    if s, ok := getString(ctx); ok {
         // s = "Send this down the line."
-	}
-	
+    }
+    
     // ...
 }
 ```

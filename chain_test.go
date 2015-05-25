@@ -204,6 +204,49 @@ func TestContextContinuity(t *testing.T) {
 	}
 }
 
+func TestContextChange(t *testing.T) {
+	tStr0 := "test_string_0"
+	tStr1 := "test_string_1"
+	ctx0 := context.Background()
+	ctx0 = setString(ctx0, tStr0)
+	ctx1 := setString(ctx0, tStr1)
+
+	c0 := chain.New(ctx0, emptyCtxHandlerWrapper)
+	c1 := c0.SetContext(ctx1)
+	m := http.NewServeMux()
+	r0 := "/0"
+	r1 := "/1"
+	m.Handle(r0, c0.EndFn(ctxChangeHandler))
+	m.Handle(r1, c1.EndFn(ctxChangeHandler))
+	s := httptest.NewServer(m)
+
+	re0, err := http.Get(s.URL + r0)
+	if err != nil {
+		t.Error(err)
+	}
+	defer re0.Body.Close()
+	rb0, err := ioutil.ReadAll(re0.Body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	re1, err := http.Get(s.URL + r1)
+	if err != nil {
+		t.Error(err)
+	}
+	defer re1.Body.Close()
+	rb1, err := ioutil.ReadAll(re1.Body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	want := tStr0 + tStr1
+	got := string(rb0) + string(rb1)
+	if got != want {
+		t.Errorf("Body = %v, want %v", got, want)
+	}
+}
+
 func ctxHandlerWrapper0(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		w.Write(bTxt0)
@@ -256,6 +299,13 @@ func ctxContinuityHandler(ctx context.Context, w http.ResponseWriter, r *http.Re
 		if s, ok := getString(*conCtx); ok {
 			w.Write([]byte(s))
 		}
+	}
+	return
+}
+
+func ctxChangeHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	if s, ok := getString(ctx); ok {
+		w.Write([]byte(s))
 	}
 	return
 }
