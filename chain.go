@@ -68,8 +68,8 @@ func (c Chain) Append(hws ...func(Handler) Handler) Chain {
 	return c
 }
 
-// Merge takes one or more Chains, and appends the value's Handler wrappers
-// to the returned Chain.
+// Merge takes one or more Chain objects, and appends the values' Handler
+// wrappers to the returned Chain.
 func (c Chain) Merge(cs ...Chain) Chain {
 	for k := range cs {
 		c.hws = append(c.hws, cs[k].hws...)
@@ -105,9 +105,7 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 }
 
 // Convert takes a http.Handler wrapper and returns a Handler wrapper.  This is
-// useful for making standard http.Handler wrappers compatible with the rest of
-// a Handler Chain.  It should be obvious that converted wrappers cannot access
-// the request-scoped data.
+// useful for making standard http.Handler wrappers compatible with a Chain.
 func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(h Handler) Handler {
 		return HandlerFunc(
