@@ -75,21 +75,21 @@ func TestChain(t *testing.T) {
 	m.Handle(r1, c1.EndFn(ctxHandler))
 	s := httptest.NewServer(m)
 
-	rb0, err := getReqBody(s.URL + r0)
-	if err != nil {
-		t.Error(err)
+	tMap := map[string]string{
+		"/0": bTxt1 + bTxt0 + bTxtEnd + bTxt0 + bTxt1,
+		"/1": bTxt0 + bTxt1 + bTxtA + bTxtEnd + bTxtA + bTxt1 + bTxt0,
 	}
 
-	rb1, err := getReqBody(s.URL + r1)
-	if err != nil {
-		t.Error(err)
-	}
-
-	want := bTxt1 + bTxt0 + bTxtEnd + bTxt0 + bTxt1
-	want += bTxt0 + bTxt1 + bTxtA + bTxtEnd + bTxtA + bTxt1 + bTxt0
-	got := rb0 + rb1
-	if got != want {
-		t.Errorf("Body = %v, want %v", got, want)
+	for k, v := range tMap {
+		rb, err := getReqBody(s.URL + k)
+		if err != nil {
+			t.Error(err)
+		}
+		want := v
+		got := rb
+		if got != want {
+			t.Errorf("Body = %v, want %v", got, want)
+		}
 	}
 }
 
@@ -102,33 +102,21 @@ func TestNilEnd(t *testing.T) {
 	m.Handle(r1, c0.EndFn(nil))
 	s := httptest.NewServer(m)
 
-	re0, err := http.Get(s.URL + r0)
-	if err != nil {
-		t.Error(err)
-	}
-	defer func() {
-		_ = re0.Body.Close()
-	}()
-	rs0 := re0.StatusCode
-
-	want := http.StatusOK
-	got := rs0
-	if got != want {
-		t.Errorf("Status Code = %v, want %v", got, want)
+	tMap := map[string]int{
+		"/0": http.StatusOK,
+		"/1": http.StatusOK,
 	}
 
-	re1, err := http.Get(s.URL + r1)
-	if err != nil {
-		t.Error(err)
-	}
-	defer func() {
-		_ = re1.Body.Close()
-	}()
-	rs1 := re1.StatusCode
-
-	got = rs1
-	if got != want {
-		t.Errorf("Status Code = %v, want %v", got, want)
+	for k, v := range tMap {
+		rs, err := getReqStatus(s.URL + k)
+		if err != nil {
+			t.Error(err)
+		}
+		want := v
+		got := rs
+		if got != want {
+			t.Errorf("Status Code = %v, want %v", got, want)
+		}
 	}
 }
 
@@ -175,20 +163,21 @@ func TestContextChange(t *testing.T) {
 	m.Handle(r1, c1.EndFn(ctxChangeHandler))
 	s := httptest.NewServer(m)
 
-	rb0, err := getReqBody(s.URL + r0)
-	if err != nil {
-		t.Error(err)
+	tMap := map[string]string{
+		"/0": str0,
+		"/1": str1,
 	}
 
-	rb1, err := getReqBody(s.URL + r1)
-	if err != nil {
-		t.Error(err)
-	}
-
-	want := str0 + str1
-	got := rb0 + rb1
-	if got != want {
-		t.Errorf("Body = %v, want %v", got, want)
+	for k, v := range tMap {
+		rb, err := getReqBody(s.URL + k)
+		if err != nil {
+			t.Error(err)
+		}
+		want := v
+		got := rb
+		if got != want {
+			t.Errorf("Body = %v, want %v", got, want)
+		}
 	}
 }
 
@@ -203,6 +192,17 @@ func getReqBody(url string) (string, error) {
 	}
 	_ = resp.Body.Close()
 	return string(body), nil
+}
+
+func getReqStatus(url string) (int, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	return resp.StatusCode, nil
 }
 
 func ctxHandlerWrapper0(n chain.Handler) chain.Handler {
