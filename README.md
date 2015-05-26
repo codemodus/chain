@@ -5,10 +5,10 @@
 Package chain aids the composition of context-aware Handler wrapper chains.
 
 Nesting functions is a simple concept.  If your handler wrapper order does not 
-need to be composable, avoid adding a dependency to your project.  However, 
-nesting functions quickly becomes burdensome as the need for flexibility 
-increases.  Add to that the need for a request context, and Chain is a 
-lightweight and complete solution.
+need to be composable, do not use this package and avoid adding a dependency 
+to your project.  However, nesting functions quickly becomes burdensome as the 
+need for flexibility increases.  Add to that the need for a request context, 
+and Chain is a lightweight and complete solution.
 
 ## Usage
 
