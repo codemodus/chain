@@ -55,7 +55,7 @@ func main() {
     m.Handle("/1w2wHw4w_End1", chain1.EndFn(ctxHandler))
     m.Handle("/0w1w2wHw4w_End1", chain2.EndFn(ctxHandler))
 
-    // ,..
+    // ...
 }
 ```
 

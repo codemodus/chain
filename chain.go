@@ -2,7 +2,7 @@
 // request-scoped data.
 //
 // Review the test file for examples covering chain manipulation, and a way to
-// pass a context across scopes (for common  use cases race conditions will not
+// pass data to detached scopes (for common  use cases race conditions will not
 // be encountered, but caution is warranted). Benchmarks are available showing
 // a negligible increase in processing time and memory consumption, and no
 // increase in memory allocations compared to nesting functions without an aid.
