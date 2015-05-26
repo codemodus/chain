@@ -1,7 +1,6 @@
 package chain_test
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,62 +12,50 @@ import (
 )
 
 var (
-	bTxt0   = []byte("0")
-	bTxt1   = []byte("1")
-	bTxtA   = []byte("A")
-	bTxtEnd = []byte("_END_")
+	bTxt0   = "0"
+	bTxt1   = "1"
+	bTxtA   = "A"
+	bTxtEnd = "_END_"
 )
 
 func Example() {
+	ctx := context.Background()
+	// Add common data to the context.
+
 	// Each wrapper writes either "0", "1", or "A" to the response body before
 	// and after ServeHTTPContext() is called.
 	// ctxHandler writes "_END_" to the response body and returns.
-	ctx := context.Background()
-	chain0 := chain.New(ctx, ctxHandlerWrapper0, ctxHandlerWrapper0)
-	chain1 := chain0.Append(chain.Convert(httpHandlerWrapperA), ctxHandlerWrapper1)
-	chain2 := chain.New(ctx, ctxHandlerWrapper1)
-	chain2 = chain2.Merge(chain1)
+	chain00 := chain.New(ctxHandlerWrapper0, ctxHandlerWrapper0).SetContext(ctx)
+	chain00A1 := chain00.Append(chain.Convert(httpHandlerWrapperA), ctxHandlerWrapper1)
 
-	m := http.NewServeMux()
-	m.Handle("/test/00_End", chain0.EndFn(ctxHandler))
-	m.Handle("/test/00A1_End", chain1.EndFn(ctxHandler))
-	m.Handle("/test/100A1_End", chain2.EndFn(ctxHandler))
+	chain100A1 := chain.New(ctxHandlerWrapper1).SetContext(ctx)
+	chain100A1 = chain100A1.Merge(chain00A1)
 
-	s := httptest.NewServer(m)
+	mux := http.NewServeMux()
+	mux.Handle("/path_implies_body/00_End", chain00.EndFn(ctxHandler))
+	mux.Handle("/path_implies_body/00A1_End", chain00A1.EndFn(ctxHandler))
+	mux.Handle("/path_implies_body/100A1_End", chain100A1.EndFn(ctxHandler))
 
-	resp0, err := http.Get(s.URL + "/test/00_End")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp0.Body.Close()
-	rBody0, err := ioutil.ReadAll(resp0.Body)
+	server := httptest.NewServer(mux)
+
+	rBody0, err := getReqBody(server.URL + "/path_implies_body/00_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	resp1, err := http.Get(s.URL + "/test/00A1_End")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp1.Body.Close()
-	rBody1, err := ioutil.ReadAll(resp1.Body)
+	rBody1, err := getReqBody(server.URL + "/path_implies_body/00A1_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	resp2, err := http.Get(s.URL + "/test/100A1_End")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp2.Body.Close()
-	rBody2, err := ioutil.ReadAll(resp2.Body)
+	rBody2, err := getReqBody(server.URL + "/path_implies_body/100A1_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Println("Chain 0 Body:", string(rBody0))
-	fmt.Println("Chain 1 Body:", string(rBody1))
-	fmt.Println("Chain 2 Body:", string(rBody2))
+	fmt.Println("Chain 0 Body:", rBody0)
+	fmt.Println("Chain 1 Body:", rBody1)
+	fmt.Println("Chain 2 Body:", rBody2)
 
 	// Output:
 	// Chain 0 Body: 00_END_00
@@ -77,11 +64,10 @@ func Example() {
 }
 
 func TestChain(t *testing.T) {
-	ctx := context.Background()
-	c0 := chain.New(ctx, ctxHandlerWrapper0)
+	c0 := chain.New(ctxHandlerWrapper0)
 	c1 := c0.Append(ctxHandlerWrapper1, chain.Convert(httpHandlerWrapperA))
-	cTmp := chain.New(ctx, ctxHandlerWrapper1)
-	c0 = cTmp.Merge(c0)
+	cBefore0 := chain.New(ctxHandlerWrapper1)
+	c0 = cBefore0.Merge(c0)
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
@@ -89,49 +75,26 @@ func TestChain(t *testing.T) {
 	m.Handle(r1, c1.EndFn(ctxHandler))
 	s := httptest.NewServer(m)
 
-	re0, err := http.Get(s.URL + r0)
-	if err != nil {
-		t.Error(err)
-	}
-	defer re0.Body.Close()
-	rb0, err := ioutil.ReadAll(re0.Body)
+	rb0, err := getReqBody(s.URL + r0)
 	if err != nil {
 		t.Error(err)
 	}
 
-	re1, err := http.Get(s.URL + r1)
-	if err != nil {
-		t.Error(err)
-	}
-	defer re1.Body.Close()
-	rb1, err := ioutil.ReadAll(re1.Body)
+	rb1, err := getReqBody(s.URL + r1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	bb := &bytes.Buffer{}
-	bb.Write(bTxt1)
-	bb.Write(bTxt0)
-	bb.Write(bTxtEnd)
-	bb.Write(bTxt0)
-	bb.Write(bTxt1)
-	bb.Write(bTxt0)
-	bb.Write(bTxt1)
-	bb.Write(bTxtA)
-	bb.Write(bTxtEnd)
-	bb.Write(bTxtA)
-	bb.Write(bTxt1)
-	bb.Write(bTxt0)
-
-	want := string(bb.Bytes())
-	got := string(rb0) + string(rb1)
+	want := bTxt1 + bTxt0 + bTxtEnd + bTxt0 + bTxt1
+	want += bTxt0 + bTxt1 + bTxtA + bTxtEnd + bTxtA + bTxt1 + bTxt0
+	got := rb0 + rb1
 	if got != want {
 		t.Errorf("Body = %v, want %v", got, want)
 	}
 }
 
 func TestNilEnd(t *testing.T) {
-	c0 := chain.New(context.Background(), emptyCtxHandlerWrapper)
+	c0 := chain.New(emptyCtxHandlerWrapper)
 	m := http.NewServeMux()
 	r0 := "/0"
 	r1 := "/1"
@@ -143,7 +106,9 @@ func TestNilEnd(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	defer re0.Body.Close()
+	defer func() {
+		_ = re0.Body.Close()
+	}()
 	rs0 := re0.StatusCode
 
 	want := http.StatusOK
@@ -156,7 +121,9 @@ func TestNilEnd(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	defer re1.Body.Close()
+	defer func() {
+		_ = re1.Body.Close()
+	}()
 	rs1 := re1.StatusCode
 
 	got = rs1
@@ -166,55 +133,40 @@ func TestNilEnd(t *testing.T) {
 }
 
 func TestContextContinuity(t *testing.T) {
-	tStr := "test_string"
+	str := "my_string"
 	ctx := context.Background()
 	ctx = initPHFC(ctx)
 	if conCtx, ok := getPHFC(ctx); ok {
-		*conCtx = setString(*conCtx, tStr)
+		*conCtx = setMyString(*conCtx, str)
 	}
 
-	c0 := chain.New(ctx, ctxContinuityWrapper, ctxHandlerWrapper0)
+	c0 := chain.New(ctxContinuityWrapper, ctxHandlerWrapper0).SetContext(ctx)
 	c0 = c0.Append(ctxHandlerWrapper1, chain.Convert(httpHandlerWrapperA))
 	m := http.NewServeMux()
 	r0 := "/0"
 	m.Handle(r0, c0.EndFn(ctxContinuityHandler))
 	s := httptest.NewServer(m)
 
-	re0, err := http.Get(s.URL + r0)
-	if err != nil {
-		t.Error(err)
-	}
-	defer re0.Body.Close()
-	rb0, err := ioutil.ReadAll(re0.Body)
+	rb0, err := getReqBody(s.URL + r0)
 	if err != nil {
 		t.Error(err)
 	}
 
-	bb := &bytes.Buffer{}
-	bb.Write(bTxt0)
-	bb.Write(bTxt1)
-	bb.Write(bTxtA)
-	bb.Write([]byte(tStr))
-	bb.Write(bTxtA)
-	bb.Write(bTxt1)
-	bb.Write(bTxt0)
-	bb.Write([]byte(tStr))
-
-	want := string(bb.Bytes())
-	got := string(rb0)
+	want := bTxt0 + bTxt1 + bTxtA + str + bTxtA + bTxt1 + bTxt0 + str
+	got := rb0
 	if got != want {
 		t.Errorf("Body = %v, want %v", got, want)
 	}
 }
 
 func TestContextChange(t *testing.T) {
-	tStr0 := "test_string_0"
-	tStr1 := "test_string_1"
+	str0 := "my_string_0"
+	str1 := "my_string_1"
 	ctx0 := context.Background()
-	ctx0 = setString(ctx0, tStr0)
-	ctx1 := setString(ctx0, tStr1)
+	ctx0 = setMyString(ctx0, str0)
+	ctx1 := setMyString(ctx0, str1)
 
-	c0 := chain.New(ctx0, emptyCtxHandlerWrapper)
+	c0 := chain.New(emptyCtxHandlerWrapper).SetContext(ctx0)
 	c1 := c0.SetContext(ctx1)
 	m := http.NewServeMux()
 	r0 := "/0"
@@ -223,54 +175,57 @@ func TestContextChange(t *testing.T) {
 	m.Handle(r1, c1.EndFn(ctxChangeHandler))
 	s := httptest.NewServer(m)
 
-	re0, err := http.Get(s.URL + r0)
-	if err != nil {
-		t.Error(err)
-	}
-	defer re0.Body.Close()
-	rb0, err := ioutil.ReadAll(re0.Body)
+	rb0, err := getReqBody(s.URL + r0)
 	if err != nil {
 		t.Error(err)
 	}
 
-	re1, err := http.Get(s.URL + r1)
-	if err != nil {
-		t.Error(err)
-	}
-	defer re1.Body.Close()
-	rb1, err := ioutil.ReadAll(re1.Body)
+	rb1, err := getReqBody(s.URL + r1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	want := tStr0 + tStr1
-	got := string(rb0) + string(rb1)
+	want := str0 + str1
+	got := rb0 + rb1
 	if got != want {
 		t.Errorf("Body = %v, want %v", got, want)
 	}
 }
 
+func getReqBody(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	_ = resp.Body.Close()
+	return string(body), nil
+}
+
 func ctxHandlerWrapper0(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		w.Write(bTxt0)
+		_, _ = w.Write([]byte(bTxt0))
 		n.ServeHTTPContext(ctx, w, r)
-		w.Write(bTxt0)
+		_, _ = w.Write([]byte(bTxt0))
 	})
 }
 
 func ctxHandlerWrapper1(n chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		w.Write(bTxt1)
+		_, _ = w.Write([]byte(bTxt1))
 		n.ServeHTTPContext(ctx, w, r)
-		w.Write(bTxt1)
+		_, _ = w.Write([]byte(bTxt1))
 	})
 }
 
 func httpHandlerWrapperA(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(bTxtA)
+		_, _ = w.Write([]byte(bTxtA))
 		n.ServeHTTP(w, r)
-		w.Write(bTxtA)
+		_, _ = w.Write([]byte(bTxtA))
 	})
 }
 
@@ -281,7 +236,7 @@ func emptyCtxHandlerWrapper(n chain.Handler) chain.Handler {
 }
 
 func ctxHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	w.Write(bTxtEnd)
+	_, _ = w.Write([]byte(bTxtEnd))
 	return
 }
 
@@ -290,8 +245,8 @@ func ctxContinuityWrapper(n chain.Handler) chain.Handler {
 		n.ServeHTTPContext(ctx, w, r)
 
 		if conCtx, ok := getPHFC(ctx); ok {
-			if s, ok := getString(*conCtx); ok {
-				w.Write([]byte(s))
+			if s, ok := getMyString(*conCtx); ok {
+				_, _ = w.Write([]byte(s))
 			}
 		}
 	})
@@ -299,16 +254,16 @@ func ctxContinuityWrapper(n chain.Handler) chain.Handler {
 
 func ctxContinuityHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	if conCtx, ok := getPHFC(ctx); ok {
-		if s, ok := getString(*conCtx); ok {
-			w.Write([]byte(s))
+		if s, ok := getMyString(*conCtx); ok {
+			_, _ = w.Write([]byte(s))
 		}
 	}
 	return
 }
 
 func ctxChangeHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	if s, ok := getString(ctx); ok {
-		w.Write([]byte(s))
+	if s, ok := getMyString(ctx); ok {
+		_, _ = w.Write([]byte(s))
 	}
 	return
 }
@@ -333,11 +288,11 @@ const (
 	keyString
 )
 
-func setString(ctx context.Context, s string) context.Context {
+func setMyString(ctx context.Context, s string) context.Context {
 	return context.WithValue(ctx, keyString, s)
 }
 
-func getString(ctx context.Context) (string, bool) {
+func getMyString(ctx context.Context) (string, bool) {
 	s, ok := ctx.Value(keyString).(string)
 	return s, ok
 }
@@ -357,7 +312,7 @@ func getPHFC(ctx context.Context) (*context.Context, bool) {
 }
 
 func BenchmarkChain10(b *testing.B) {
-	c0 := chain.New(context.Background(), emptyCtxHandlerWrapper,
+	c0 := chain.New(emptyCtxHandlerWrapper,
 		emptyCtxHandlerWrapper, emptyCtxHandlerWrapper, emptyCtxHandlerWrapper,
 		emptyCtxHandlerWrapper, emptyCtxHandlerWrapper, emptyCtxHandlerWrapper,
 		emptyCtxHandlerWrapper, emptyCtxHandlerWrapper, emptyCtxHandlerWrapper)
@@ -372,7 +327,7 @@ func BenchmarkChain10(b *testing.B) {
 		if err != nil {
 			b.Error(err)
 		}
-		re0.Body.Close()
+		_ = re0.Body.Close()
 	}
 }
 
@@ -397,6 +352,6 @@ func BenchmarkNest10(b *testing.B) {
 		if err != nil {
 			b.Error(err)
 		}
-		re0.Body.Close()
+		_ = re0.Body.Close()
 	}
 }

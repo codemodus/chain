@@ -2,12 +2,13 @@
 
     go get "github.com/codemodus/chain"
 
-Package chain aids the composition of context-aware Handler wrapper chains.
+Package chain aids the composition of Handler wrapper chains that carry 
+request-scoped data.
 
 Nesting functions is a simple concept.  If your handler wrapper order does not 
-need to be composable, do not use this package and avoid adding a dependency 
+need to be composable, do not use a package and avoid adding a dependency 
 to your project.  However, nesting functions quickly becomes burdensome as the 
-need for flexibility increases.  Add to that the need for a request context, 
+need for flexibility increases.  Add to that the need for request-scoped data, 
 and Chain is a lightweight and complete solution.
 
 ## Usage
@@ -15,7 +16,7 @@ and Chain is a lightweight and complete solution.
 ```
 func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler
 type Chain
-    func New(ctx context.Context, hws ...func(Handler) Handler) Chain
+    func New(hws ...func(Handler) Handler) Chain
     func (c Chain) Append(hws ...func(Handler) Handler) Chain
     func (c Chain) End(h Handler) http.Handler
     func (c Chain) EndFn(h HandlerFunc) http.Handler
@@ -42,9 +43,10 @@ func main() {
     ctx := context.Background()
     // Add common data to the context.
     
-    chain0 := chain.New(ctx, firstWrapper, secondWrapper)
+    chain0 := chain.New(firstWrapper, secondWrapper).SetContext(ctx)
     chain1 := chain0.Append(chain.Convert(httpHandlerWrapper), fourthWrapper)
-    chain2 := chain.New(ctx, beforeFirstWrapper)
+    
+    chain2 := chain.New(beforeFirstWrapper).SetContext(ctx)
     chain2 = chain2.Merge(chain1)
 
     m := http.NewServeMux()
@@ -64,7 +66,7 @@ func firstWrapper(n chain.Handler) chain.Handler {
     return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
         // ...
         
-        ctx = setString(ctx, "Send this down the line.")
+        ctx = setMyString(ctx, "Send this down the line.")
     	
         n.ServeHTTPContext(ctx, w, r)
     	
@@ -72,6 +74,8 @@ func firstWrapper(n chain.Handler) chain.Handler {
     })
 }
 ```
+This function signature will make wrappers compatible with chain.  It's simple 
+to make existing wrappers capable of carrying request-scoped data.
 
 ### Handler Function And Context Usage (Get)
 
@@ -79,13 +83,16 @@ func firstWrapper(n chain.Handler) chain.Handler {
 func ctxHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
     // ...
     
-    if s, ok := getString(ctx); ok {
+    if s, ok := getMyString(ctx); ok {
         // s = "Send this down the line."
     }
     
     // ...
 }
 ```
+End-point functions will need to be adapted using chain.HandlerFunc.  As a 
+convenience, EndFn will adapt functions with compatible signatures.  The 
+prescribed signature is in accordance with practices outlined in the Go Blog.
 
 ### HTTP Handler Wrapper
 
@@ -100,6 +107,9 @@ func httpHandlerWrapper(n http.Handler) http.Handler {
     })
 }
 ```
+A standard http.Handler wrapper is a perfect candidate for chain.Convert. If 
+chain.Convert is used, the added http.Handler wrapper will be compatible with 
+a Chain, but will not be able to make use of the request context.
 
 ## More Info 
 
@@ -108,11 +118,17 @@ func httpHandlerWrapper(n http.Handler) http.Handler {
 net/context is made for this need and enables some interesting capabilities.
 [The Go Blog: Context](https://blog.golang.org/context)
 
+### What if SetContext goes unused?
+
+A context.Background result is provided as a default initial context.Context.  
+Conversely, it is also possible to set different initial context.Context 
+objects for different chains which may or may not share wrapper content/order.
+
 ### Context Scope
 
-By not using more broadly scoped context access, a small trick is needed to move 
-request context data to and from certain points in the request life cycle.  For 
-instance, if a final handler adds any data to the context, that data will not be 
+By not using more broadly scoped context access, a small trick is needed to 
+move data to and from certain points in the request life cycle.  For instance, 
+if a final handler adds any data to the context, that data will not be 
 accessible to any wrapper code residing after calls to 
 ServeHTTP/ServeHTTPContext.
 

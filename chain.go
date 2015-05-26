@@ -1,4 +1,5 @@
-// Package chain aids the composition of context-aware Handler wrapper chains.
+// Package chain aids the composition of Handler wrapper chains that carry
+// request-scoped data.
 //
 // Review the test file for examples covering chain manipulation, and a way to
 // pass a context across scopes (for common  use cases race conditions will not
@@ -48,10 +49,9 @@ type noCtxHandlerAdapter struct {
 	hw func(http.Handler) http.Handler
 }
 
-// New takes a context.Context and one or more Handler wrappers, and returns
-// a new Chain.
-func New(ctx context.Context, hws ...func(Handler) Handler) Chain {
-	return Chain{ctx: ctx, hws: hws}
+// New takes one or more Handler wrappers, and returns a new Chain.
+func New(hws ...func(Handler) Handler) Chain {
+	return Chain{hws: hws}
 }
 
 // SetContext takes a context.Context, and updates the stored/initial context
@@ -79,6 +79,9 @@ func (c Chain) Merge(cs ...Chain) Chain {
 
 // End takes a Handler and returns an http.Handler.
 func (c Chain) End(h Handler) http.Handler {
+	if c.ctx == nil {
+		c.ctx = context.Background()
+	}
 	if h == nil {
 		h = HandlerFunc(nilHandler)
 	}
@@ -102,8 +105,9 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 }
 
 // Convert takes a http.Handler wrapper and returns a Handler wrapper.  This is
-// useful for making non-context aware http.Handler wrappers compatible with
-// the rest of a Handler Chain.
+// useful for making standard http.Handler wrappers compatible with the rest of
+// a Handler Chain.  It should be obvious that converted wrappers cannot access
+// the request-scoped data.
 func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(h Handler) Handler {
 		return HandlerFunc(
