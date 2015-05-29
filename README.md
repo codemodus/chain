@@ -13,7 +13,7 @@ and Chain is a lightweight and complete solution.
 
 ## Usage
 
-```
+```go
 func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler
 type Chain
     func New(hws ...func(Handler) Handler) Chain
