@@ -108,14 +108,12 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 // useful for making standard http.Handler wrappers compatible with a Chain.
 func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(h Handler) Handler {
-		return HandlerFunc(
-			func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				x := noCtxHandlerAdapter{
-					hw: hw, handlerAdapter: handlerAdapter{ctx: ctx, h: h},
-				}
-				hw(x).ServeHTTP(w, r)
-			},
-		)
+		return HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+			x := noCtxHandlerAdapter{
+				hw: hw, handlerAdapter: handlerAdapter{ctx: ctx, h: h},
+			}
+			hw(x).ServeHTTP(w, r)
+		})
 	}
 }
 
