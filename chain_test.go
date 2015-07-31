@@ -25,16 +25,16 @@ func Example() {
 	// Each wrapper writes either "0", "1", or "A" to the response body before
 	// and after ServeHTTPContext() is called.
 	// ctxHandler writes "_END_" to the response body and returns.
-	chain00 := chain.New(ctxHandlerWrapper0, ctxHandlerWrapper0).SetContext(ctx)
-	chain00A1 := chain00.Append(chain.Convert(httpHandlerWrapperA), ctxHandlerWrapper1)
+	ch00 := chain.New(ctxHandlerWrapper0, ctxHandlerWrapper0).SetContext(ctx)
+	ch00A1 := ch00.Append(chain.Convert(httpHandlerWrapperA), ctxHandlerWrapper1)
 
-	chain100A1 := chain.New(ctxHandlerWrapper1).SetContext(ctx)
-	chain100A1 = chain100A1.Merge(chain00A1)
+	ch100A1 := chain.New(ctxHandlerWrapper1).SetContext(ctx)
+	ch100A1 = ch100A1.Merge(ch00A1)
 
 	mux := http.NewServeMux()
-	mux.Handle("/path_implies_body/00_End", chain00.EndFn(ctxHandler))
-	mux.Handle("/path_implies_body/00A1_End", chain00A1.EndFn(ctxHandler))
-	mux.Handle("/path_implies_body/100A1_End", chain100A1.EndFn(ctxHandler))
+	mux.Handle("/path_implies_body/00_End", ch00.EndFn(ctxHandler))
+	mux.Handle("/path_implies_body/00A1_End", ch00A1.EndFn(ctxHandler))
+	mux.Handle("/path_implies_body/100A1_End", ch100A1.EndFn(ctxHandler))
 
 	server := httptest.NewServer(mux)
 
@@ -42,12 +42,10 @@ func Example() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	rBody1, err := getReqBody(server.URL + "/path_implies_body/00A1_End")
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	rBody2, err := getReqBody(server.URL + "/path_implies_body/100A1_End")
 	if err != nil {
 		fmt.Println(err)

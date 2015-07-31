@@ -39,21 +39,21 @@ import (
 
 func main() {
     // ...
-    
+
     ctx := context.Background()
     // Add common data to the context.
-    
-    chain0 := chain.New(firstWrapper, secondWrapper).SetContext(ctx)
-    chain1 := chain0.Append(chain.Convert(httpHandlerWrapper), fourthWrapper)
-    
-    chain2 := chain.New(beforeFirstWrapper).SetContext(ctx)
-    chain2 = chain2.Merge(chain1)
+
+    ch0 := chain.New(firstWrapper, secondWrapper).SetContext(ctx)
+    ch1 := ch0.Append(chain.Convert(httpHandlerWrapper), fourthWrapper)
+
+    ch2 := chain.New(beforeFirstWrapper).SetContext(ctx)
+    ch2 = ch2.Merge(ch1)
 
     m := http.NewServeMux()
-    m.Handle("/1w2w_End1", chain0.EndFn(ctxHandler))
-    m.Handle("/1w2w_End2", chain0.EndFn(anotherCtxHandler))
-    m.Handle("/1w2wHw4w_End1", chain1.EndFn(ctxHandler))
-    m.Handle("/0w1w2wHw4w_End1", chain2.EndFn(ctxHandler))
+    m.Handle("/1w2w_End1", ch0.EndFn(ctxHandler))
+    m.Handle("/1w2w_End2", ch0.EndFn(anotherCtxHandler))
+    m.Handle("/1w2wHw4w_End1", ch1.EndFn(ctxHandler))
+    m.Handle("/0w1w2wHw4w_End1", ch2.EndFn(ctxHandler))
 
     // ...
 }
