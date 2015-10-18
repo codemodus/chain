@@ -136,6 +136,12 @@ An example of resolving this is not being included here as it leaves the scope
 of the package itself. Though, this package is tested for the capability, so 
 review the relevant test if need be.  Convenience functions can be found.
 
+### catena
+
+If a project is not in need of a request context, consider using 
+[catena](https://github.com/codemodus/catena). The API is nearly identical to 
+chain, so adding a request context is easy when needs change.
+
 ## Documentation
 
 View the [GoDoc](http://godoc.org/github.com/codemodus/chain)
