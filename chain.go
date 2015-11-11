@@ -44,11 +44,6 @@ func (ha handlerAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ha.h.ServeHTTPContext(ha.ctx, w, r)
 }
 
-type noCtxHandlerAdapter struct {
-	handlerAdapter
-	hw func(http.Handler) http.Handler
-}
-
 // New takes one or more Handler wrappers, and returns a new Chain.
 func New(hws ...func(Handler) Handler) Chain {
 	return Chain{hws: hws}
@@ -109,10 +104,8 @@ func (c Chain) EndFn(h HandlerFunc) http.Handler {
 func Convert(hw func(http.Handler) http.Handler) func(Handler) Handler {
 	return func(h Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			x := noCtxHandlerAdapter{
-				hw: hw, handlerAdapter: handlerAdapter{ctx: ctx, h: h},
-			}
-			hw(x).ServeHTTP(w, r)
+			ha := handlerAdapter{ctx: ctx, h: h}
+			hw(ha).ServeHTTP(w, r)
 		})
 	}
 }
