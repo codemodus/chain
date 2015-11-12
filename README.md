@@ -151,7 +151,12 @@ View the [GoDoc](http://godoc.org/github.com/codemodus/chain)
 These results are for comparison of normally nested functions, and chained 
 functions.  Each benchmark includes 10 functions prior to the final handler.
 
+    Go1.5
     benchmark           iter      time/iter   bytes alloc         allocs
     ---------           ----      ---------   -----------         ------
-    BenchmarkChain10   50000    48.08 μs/op     4644 B/op   53 allocs/op
-    BenchmarkNest10    50000    47.23 μs/op     4639 B/op   53 allocs/op
+    BenchmarkChain10     30000     53.55 μs/op     3459 B/op   47 allocs/op
+    BenchmarkChain10-4   10000    167.94 μs/op     3470 B/op   47 allocs/op
+    BenchmarkChain10-8   10000    167.07 μs/op     3477 B/op   47 allocs/op
+    BenchmarkNest10      30000     53.42 μs/op     3460 B/op   47 allocs/op
+    BenchmarkNest10-4    10000    167.68 μs/op     3471 B/op   47 allocs/op
+    BenchmarkNest10-8    10000    167.24 μs/op     3480 B/op   47 allocs/op
