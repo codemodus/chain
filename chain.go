@@ -18,41 +18,41 @@ func New(handlers ...func(http.Handler) http.Handler) Chain {
 // value to the returned Chain.
 func (c Chain) Append(handlers ...func(http.Handler) http.Handler) Chain {
 	c.hs = append(c.hs, handlers...)
+
 	return c
 }
 
 // Merge receives one or more Chain instances, and returns a merged Chain.
-func (c Chain) Merge(cs ...Chain) Chain {
-	for k := range cs {
-		c.hs = append(c.hs, cs[k].hs...)
+func (c Chain) Merge(chains ...Chain) Chain {
+	for k := range chains {
+		c.hs = append(c.hs, chains[k].hs...)
 	}
+
 	return c
 }
 
 // End receives an http.Handler, and returns an http.Handler comprised of all
 // nested http.Handler data where the received http.Handler is the endpoint.
-func (c Chain) End(h http.Handler) http.Handler {
-	if h == nil {
-		h = http.HandlerFunc(emptyHandler)
+func (c Chain) End(handler http.Handler) http.Handler {
+	if handler == nil {
+		handler = http.HandlerFunc(emptyHandler)
 	}
 
 	for i := len(c.hs) - 1; i >= 0; i-- {
-		h = c.hs[i](h)
+		handler = c.hs[i](handler)
 	}
 
-	return h
+	return handler
 }
 
 // EndFn receives an instance of http.HandlerFunc, then passes it to End to
 // return an http.Handler.
-func (c Chain) EndFn(h http.HandlerFunc) http.Handler {
-	if h == nil {
-		h = http.HandlerFunc(emptyHandler)
+func (c Chain) EndFn(handlerFunc http.HandlerFunc) http.Handler {
+	if handlerFunc == nil {
+		handlerFunc = http.HandlerFunc(emptyHandler)
 	}
 
-	return c.End(h)
+	return c.End(handlerFunc)
 }
 
-func emptyHandler(w http.ResponseWriter, r *http.Request) {
-	return
-}
+func emptyHandler(w http.ResponseWriter, r *http.Request) {}
