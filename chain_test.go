@@ -15,10 +15,10 @@ var (
 )
 
 func Example() {
-	// Each nested handler writes either "0", or "1", to the response
-	// body before and after ServeHTTPContext() is called.
+	// Nested handlers write either "0" or "1" to the response body before
+	// and after ServeHTTP() is called.
 	//
-	// endHandler writes "_END_" to the response body and returns.
+	// endHandler writes "_END_" to the response body.
 
 	ch00 := New(nestedHandler0, nestedHandler0)
 	ch001 := ch00.Append(nestedHandler1)
@@ -60,6 +60,7 @@ func Example() {
 
 func TestNew(t *testing.T) {
 	c := New(emptyNestedHandler)
+
 	if c.hs == nil {
 		t.Fatal("want new chain with hs set, got nil")
 	}
@@ -68,6 +69,7 @@ func TestNew(t *testing.T) {
 func TestAppend(t *testing.T) {
 	c := New(emptyNestedHandler)
 	c = c.Append(emptyNestedHandler)
+
 	if len(c.hs) != 2 {
 		t.Fatalf("want chain hs with len 2, got %d\n", len(c.hs))
 	}
@@ -77,6 +79,7 @@ func TestMerge(t *testing.T) {
 	c1 := New(emptyNestedHandler)
 	c2 := New(emptyNestedHandler, emptyNestedHandler)
 	c3 := c1.Merge(c2)
+
 	if len(c3.hs) != 3 {
 		t.Fatalf("want chain hs with len 3, got %d\n", len(c3.hs))
 	}
@@ -221,7 +224,6 @@ func BenchmarkChain10(b *testing.B) {
 	s := httptest.NewServer(m)
 
 	b.ResetTimer()
-
 	for n := 0; n < b.N; n++ {
 		resp, err := http.Get(s.URL + "/")
 		if err != nil {
@@ -246,7 +248,6 @@ func BenchmarkNest10(b *testing.B) {
 	s := httptest.NewServer(m)
 
 	b.ResetTimer()
-
 	for n := 0; n < b.N; n++ {
 		resp, err := http.Get(s.URL + "/")
 		if err != nil {
