@@ -58,7 +58,7 @@ func Example() {
 	// Chain 1001 Resp: 1001_END_1001
 }
 
-func TestNew(t *testing.T) {
+func TestUnitNew(t *testing.T) {
 	c := New(emptyNestedHandler)
 
 	if c.hs == nil {
@@ -66,7 +66,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestAppend(t *testing.T) {
+func TestUnitAppend(t *testing.T) {
 	c := New(emptyNestedHandler)
 	c = c.Append(emptyNestedHandler)
 
@@ -75,7 +75,7 @@ func TestAppend(t *testing.T) {
 	}
 }
 
-func TestMerge(t *testing.T) {
+func TestUnitMerge(t *testing.T) {
 	c1 := New(emptyNestedHandler)
 	c2 := New(emptyNestedHandler, emptyNestedHandler)
 	c3 := c1.Merge(c2)
@@ -85,7 +85,7 @@ func TestMerge(t *testing.T) {
 	}
 }
 
-func TestEnd(t *testing.T) {
+func TestUnitEnd(t *testing.T) {
 	c := New(nestedHandler0)
 	h := c.End(http.HandlerFunc(endHandler))
 
@@ -105,7 +105,7 @@ func TestEnd(t *testing.T) {
 	}
 }
 
-func TestEndNilHandler(t *testing.T) {
+func TestUnitEndNilHandler(t *testing.T) {
 	c := New(emptyNestedHandler)
 	h := c.End(nil)
 
@@ -119,7 +119,7 @@ func TestEndNilHandler(t *testing.T) {
 	}
 }
 
-func TestEndFn(t *testing.T) {
+func TestUnitEndFn(t *testing.T) {
 	c := New(emptyNestedHandler)
 	h := c.EndFn(endHandler)
 
@@ -133,7 +133,7 @@ func TestEndFn(t *testing.T) {
 	}
 }
 
-func TestEndFnNilHandler(t *testing.T) {
+func TestUnitEndFnNilHandler(t *testing.T) {
 	c := New(emptyNestedHandler)
 	h := c.EndFn(nil)
 
