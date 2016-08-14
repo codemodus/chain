@@ -105,6 +105,23 @@ func TestEnd(t *testing.T) {
 	}
 }
 
+func TestEndNilHandler(t *testing.T) {
+	c := New(nestedHandler0)
+	h := c.End(nil)
+
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest("GET", "", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
+	}
+}
+
 func getRespBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
