@@ -73,6 +73,15 @@ func TestAppend(t *testing.T) {
 	}
 }
 
+func TestMerge(t *testing.T) {
+	c1 := New(emptyNestedHandler)
+	c2 := New(emptyNestedHandler, emptyNestedHandler)
+	c3 := c1.Merge(c2)
+	if len(c3.hs) != 3 {
+		t.Fatalf("want chain hs with len 3, go %d\n", len(c3.hs))
+	}
+}
+
 func getRespBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
