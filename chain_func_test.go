@@ -2,7 +2,7 @@ package chain
 
 import "testing"
 
-func TestFuncEnd(t *testing.T) {
+func TestFuncHandlerOrder(t *testing.T) {
 	c := New(nestedHandler0, nestedHandler0)
 	c = c.Append(nestedHandler1, nestedHandler1)
 
