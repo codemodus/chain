@@ -33,24 +33,24 @@ func Example() {
 
 	server := httptest.NewServer(mux)
 
-	resp0, err := respBody(server.URL + "/00_End")
+	resp00, err := respBody(server.URL + "/00_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	resp1, err := respBody(server.URL + "/001_End")
+	resp001, err := respBody(server.URL + "/001_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	resp2, err := respBody(server.URL + "/1001_End")
+	resp1001, err := respBody(server.URL + "/1001_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Println("Chain 00 Resp:", resp0)
-	fmt.Println("Chain 001 Resp:", resp1)
-	fmt.Println("Chain 1001 Resp:", resp2)
+	fmt.Println("Chain 00 Resp:", resp00)
+	fmt.Println("Chain 001 Resp:", resp001)
+	fmt.Println("Chain 1001 Resp:", resp1001)
 
 	// Output:
 	// Chain 00 Resp: 00_END_00
