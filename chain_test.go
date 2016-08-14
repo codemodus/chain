@@ -78,7 +78,7 @@ func TestMerge(t *testing.T) {
 	c2 := New(emptyNestedHandler, emptyNestedHandler)
 	c3 := c1.Merge(c2)
 	if len(c3.hs) != 3 {
-		t.Fatalf("want chain hs with len 3, go %d\n", len(c3.hs))
+		t.Fatalf("want chain hs with len 3, got %d\n", len(c3.hs))
 	}
 }
 
