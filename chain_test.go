@@ -82,6 +82,29 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+func TestEnd(t *testing.T) {
+	c := New(nestedHandler0)
+	h := c.End(http.HandlerFunc(endHandler))
+
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest("GET", "", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
+	}
+
+	resp := w.Body.String()
+	wResp := b0 + bEnd + b0
+	if resp != wResp {
+		t.Fatalf("want response %s, got %s\n", resp, wResp)
+	}
+}
+
 func getRespBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -125,14 +148,14 @@ func nestedHandler1(n http.Handler) http.Handler {
 	})
 }
 
+func endHandler(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write([]byte(bEnd))
+}
+
 func emptyNestedHandler(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n.ServeHTTP(w, r)
 	})
-}
-
-func endHandler(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(bEnd))
 }
 
 func BenchmarkChain10(b *testing.B) {
@@ -142,7 +165,7 @@ func BenchmarkChain10(b *testing.B) {
 		emptyNestedHandler, emptyNestedHandler, emptyNestedHandler)
 
 	m := http.NewServeMux()
-	m.Handle("/", c0.EndFn(nilHandler))
+	m.Handle("/", c0.EndFn(emptyHandler))
 
 	s := httptest.NewServer(m)
 
@@ -164,7 +187,7 @@ func BenchmarkNest10(b *testing.B) {
 			emptyNestedHandler(emptyNestedHandler(
 				emptyNestedHandler(emptyNestedHandler(
 					emptyNestedHandler(emptyNestedHandler(
-						http.HandlerFunc(nilHandler)))))))))))
+						http.HandlerFunc(emptyHandler)))))))))))
 
 	m := http.NewServeMux()
 	m.Handle("/", h)

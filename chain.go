@@ -33,7 +33,7 @@ func (c Chain) Merge(cs ...Chain) Chain {
 // nested http.Handler data where the received http.Handler is the endpoint.
 func (c Chain) End(h http.Handler) http.Handler {
 	if h == nil {
-		h = http.HandlerFunc(nilHandler)
+		h = http.HandlerFunc(emptyHandler)
 	}
 
 	for i := len(c.hs) - 1; i >= 0; i-- {
@@ -47,12 +47,12 @@ func (c Chain) End(h http.Handler) http.Handler {
 // return an http.Handler.
 func (c Chain) EndFn(h http.HandlerFunc) http.Handler {
 	if h == nil {
-		h = http.HandlerFunc(nilHandler)
+		h = http.HandlerFunc(emptyHandler)
 	}
 
 	return c.End(h)
 }
 
-func nilHandler(w http.ResponseWriter, r *http.Request) {
+func emptyHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
