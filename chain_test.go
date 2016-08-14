@@ -65,6 +65,14 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestAppend(t *testing.T) {
+	c := New(emptyNestedHandler)
+	c = c.Append(emptyNestedHandler)
+	if len(c.hs) != 2 {
+		t.Fatalf("want chain hs with len 2, got %d\n", len(c.hs))
+	}
+}
+
 func getRespBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
