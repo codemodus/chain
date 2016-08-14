@@ -65,6 +65,24 @@ func nestableHandler(next http.Handler) http.Handler {
 }
 ```
 
+## More Info
+
+### Changes in go1.7+/chain2.0+
+
+As of version 1.7, the http package's Request type includes a field which holds 
+an implementation of context.Context.  Further, the context package has been
+added to the standard library. There is now no need for the custom Handler
+defined in previous versions of chain.  Please refer to the following command to
+ease the process of updating your source.
+
+    sed -r -e 's/chain\.Handler/http.Handler/g' \
+        -e 's/[a-zA-Z0-9]+ context\.Context, ([a-zA-Z0-9]+) (http\.ResponseWriter)/\1 \2/' \
+        -e 's/ServeHTTPContext\([a-zA-Z0-9]+, /ServeHTTP(/'
+
+Beyond this, any usage of chain.Set(context.Context) will need to be modified
+manually. Adding the affected logic as a nested handler is a simple and 
+effective alternative. Don't forget to run gofmt/goimports.
+
 ## Documentation
 
 View the [GoDoc](http://godoc.org/github.com/codemodus/chain)
