@@ -33,17 +33,17 @@ func Example() {
 
 	server := httptest.NewServer(mux)
 
-	resp0, err := getRespBody(server.URL + "/00_End")
+	resp0, err := respBody(server.URL + "/00_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	resp1, err := getRespBody(server.URL + "/001_End")
+	resp1, err := respBody(server.URL + "/001_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	resp2, err := getRespBody(server.URL + "/1001_End")
+	resp2, err := respBody(server.URL + "/1001_End")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -86,13 +86,10 @@ func TestEnd(t *testing.T) {
 	c := New(nestedHandler0)
 	h := c.End(http.HandlerFunc(endHandler))
 
-	w := httptest.NewRecorder()
-	r, err := http.NewRequest("GET", "", nil)
+	w, err := record(h)
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
-
-	h.ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
@@ -109,20 +106,17 @@ func TestEndNilHandler(t *testing.T) {
 	c := New(nestedHandler0)
 	h := c.End(nil)
 
-	w := httptest.NewRecorder()
-	r, err := http.NewRequest("GET", "", nil)
+	w, err := record(h)
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
-
-	h.ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
 	}
 }
 
-func getRespBody(url string) (string, error) {
+func respBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -138,7 +132,7 @@ func getRespBody(url string) (string, error) {
 	return string(body), nil
 }
 
-func getRespStatus(url string) (int, error) {
+func respStatus(url string) (int, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0, err
@@ -147,6 +141,18 @@ func getRespStatus(url string) (int, error) {
 	_ = resp.Body.Close()
 
 	return resp.StatusCode, nil
+}
+
+func record(h http.Handler) (*httptest.ResponseRecorder, error) {
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest("GET", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	h.ServeHTTP(w, r)
+
+	return w, nil
 }
 
 func nestedHandler0(n http.Handler) http.Handler {
