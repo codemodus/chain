@@ -61,7 +61,7 @@ func Example() {
 func TestUnitNew(t *testing.T) {
 	c := New(emptyNestedHandler)
 
-	if c.hs == nil {
+	if nil == c.hs {
 		t.Fatal("want new chain with hs set, got nil")
 	}
 }
@@ -70,8 +70,8 @@ func TestUnitAppend(t *testing.T) {
 	c := New(emptyNestedHandler)
 	c = c.Append(emptyNestedHandler)
 
-	if len(c.hs) != 2 {
-		t.Fatalf("want chain hs with len 2, got %d\n", len(c.hs))
+	if 2 != len(c.hs) {
+		t.Fatalf("want chain hs with len %d, got %d\n", 2, len(c.hs))
 	}
 }
 
@@ -80,8 +80,8 @@ func TestUnitMerge(t *testing.T) {
 	c2 := New(emptyNestedHandler, emptyNestedHandler)
 	c3 := c1.Merge(c2)
 
-	if len(c3.hs) != 3 {
-		t.Fatalf("want chain hs with len 3, got %d\n", len(c3.hs))
+	if 3 != len(c3.hs) {
+		t.Fatalf("want chain hs with len %d, got %d\n", 3, len(c3.hs))
 	}
 }
 
@@ -94,14 +94,14 @@ func TestUnitEnd(t *testing.T) {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	if w.Code != http.StatusOK {
+	if http.StatusOK != w.Code {
 		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
 	}
 
 	resp := w.Body.String()
 	wResp := b0 + bEnd + b0
-	if resp != wResp {
-		t.Fatalf("want response %s, got %s\n", resp, wResp)
+	if wResp != resp {
+		t.Fatalf("want response %s, got %s\n", wResp, resp)
 	}
 }
 
@@ -114,7 +114,7 @@ func TestUnitEndNilHandler(t *testing.T) {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	if w.Code != http.StatusOK {
+	if http.StatusOK != w.Code {
 		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
 	}
 }
@@ -128,7 +128,7 @@ func TestUnitEndFn(t *testing.T) {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	if w.Code != http.StatusOK {
+	if http.StatusOK != w.Code {
 		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
 	}
 }
@@ -142,7 +142,7 @@ func TestUnitEndFnNilHandler(t *testing.T) {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	if w.Code != http.StatusOK {
+	if http.StatusOK != w.Code {
 		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
 	}
 }
