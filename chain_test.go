@@ -103,8 +103,36 @@ func TestEnd(t *testing.T) {
 }
 
 func TestEndNilHandler(t *testing.T) {
-	c := New(nestedHandler0)
+	c := New(emptyNestedHandler)
 	h := c.End(nil)
+
+	w, err := record(h)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
+	}
+}
+
+func TestEndFn(t *testing.T) {
+	c := New(emptyNestedHandler)
+	h := c.EndFn(endHandler)
+
+	w, err := record(h)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
+	}
+}
+
+func TestEndFnNilHandler(t *testing.T) {
+	c := New(emptyNestedHandler)
+	h := c.EndFn(nil)
 
 	w, err := record(h)
 	if err != nil {
