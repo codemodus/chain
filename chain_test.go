@@ -58,6 +58,13 @@ func Example() {
 	// Chain 1001 Resp: 1001_END_1001
 }
 
+func TestNew(t *testing.T) {
+	c := New(emptyNestedHandler)
+	if c.hs == nil {
+		t.Fatal("want new chain with hs set, got nil")
+	}
+}
+
 func getRespBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
