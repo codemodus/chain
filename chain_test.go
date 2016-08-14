@@ -33,22 +33,24 @@ func Example() {
 
 	server := httptest.NewServer(mux)
 
-	rBody0, err := getReqBody(server.URL + "/00_End")
-	if err != nil {
-		fmt.Println(err)
-	}
-	rBody1, err := getReqBody(server.URL + "/001_End")
-	if err != nil {
-		fmt.Println(err)
-	}
-	rBody2, err := getReqBody(server.URL + "/1001_End")
+	resp0, err := getRespBody(server.URL + "/00_End")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Println("Chain 00 Resp:", rBody0)
-	fmt.Println("Chain 001 Resp:", rBody1)
-	fmt.Println("Chain 1001 Resp:", rBody2)
+	resp1, err := getRespBody(server.URL + "/001_End")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	resp2, err := getRespBody(server.URL + "/1001_End")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Chain 00 Resp:", resp0)
+	fmt.Println("Chain 001 Resp:", resp1)
+	fmt.Println("Chain 1001 Resp:", resp2)
 
 	// Output:
 	// Chain 00 Resp: 00_END_00
@@ -56,27 +58,30 @@ func Example() {
 	// Chain 1001 Resp: 1001_END_1001
 }
 
-func getReqBody(url string) (string, error) {
+func getRespBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
 	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
+
 	_ = resp.Body.Close()
+
 	return string(body), nil
 }
 
-func getReqStatus(url string) (int, error) {
+func getRespStatus(url string) (int, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0, err
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+
+	_ = resp.Body.Close()
+
 	return resp.StatusCode, nil
 }
 
@@ -104,7 +109,6 @@ func emptyNestedHandler(n http.Handler) http.Handler {
 
 func endHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(bEnd))
-	return
 }
 
 func BenchmarkChain10(b *testing.B) {
@@ -112,18 +116,21 @@ func BenchmarkChain10(b *testing.B) {
 		emptyNestedHandler, emptyNestedHandler, emptyNestedHandler,
 		emptyNestedHandler, emptyNestedHandler, emptyNestedHandler,
 		emptyNestedHandler, emptyNestedHandler, emptyNestedHandler)
+
 	m := http.NewServeMux()
 	m.Handle("/", c0.EndFn(nilHandler))
+
 	s := httptest.NewServer(m)
 
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		re0, err := http.Get(s.URL + "/")
+		resp, err := http.Get(s.URL + "/")
 		if err != nil {
 			b.Error(err)
 		}
-		_ = re0.Body.Close()
+
+		_ = resp.Body.Close()
 	}
 }
 
@@ -134,17 +141,20 @@ func BenchmarkNest10(b *testing.B) {
 				emptyNestedHandler(emptyNestedHandler(
 					emptyNestedHandler(emptyNestedHandler(
 						http.HandlerFunc(nilHandler)))))))))))
+
 	m := http.NewServeMux()
 	m.Handle("/", h)
+
 	s := httptest.NewServer(m)
 
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		re0, err := http.Get(s.URL + "/")
+		resp, err := http.Get(s.URL + "/")
 		if err != nil {
 			b.Error(err)
 		}
-		_ = re0.Body.Close()
+
+		_ = resp.Body.Close()
 	}
 }
