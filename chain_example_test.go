@@ -1,10 +1,12 @@
-package chain
+package chain_test
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+
+	"github.com/codemodus/chain"
 )
 
 func Example() {
@@ -13,10 +15,10 @@ func Example() {
 	//
 	// endHandler writes "_END_" to the response body.
 
-	ch00 := New(nestedHandler0, nestedHandler0)
+	ch00 := chain.New(nestedHandler0, nestedHandler0)
 	ch001 := ch00.Append(nestedHandler1)
 
-	ch1 := New(nestedHandler1)
+	ch1 := chain.New(nestedHandler1)
 	ch1001 := ch1.Merge(ch001)
 
 	mux := http.NewServeMux()
