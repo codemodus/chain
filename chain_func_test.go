@@ -15,40 +15,52 @@ var (
 )
 
 func TestFuncHandlerOrder(t *testing.T) {
-	c := chain.New(nestedHandler0, nestedHandler0)
-	c = c.Append(nestedHandler1, nestedHandler1)
+	c0 := chain.New(nestedHandler(b0), nestedHandler(b0))
+	c0 = c0.Append(nestedHandler(b1), nestedHandler(b1))
+	c0 = c0.Append(nestedHandler(b1), nestedHandler(b1))
 
-	mc := chain.New(nestedHandler0, nestedHandler0)
-	c = c.Merge(mc)
+	c1 := c0.Append(nestedHandler(b1))
 
-	h := c.EndFn(endHandler)
+	c0 = c0.Append(nestedHandler(b0))
 
-	w, err := record(h)
+	cm := chain.New(nestedHandler(b0), nestedHandler(b0))
+	c0 = c0.Merge(cm)
+	c1 = c1.Merge(cm)
+
+	h0 := c0.EndFn(endHandler)
+	h1 := c1.EndFn(endHandler)
+
+	w, err := record(h0)
 	if err != nil {
-		t.Fatalf("unexpected error: %s\n", err.Error())
+		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	resp := w.Body.String()
-	wResp := b0 + b0 + b1 + b1 + b0 + b0 + bEnd + b0 + b0 + b1 + b1 + b0 + b0
-	if wResp != resp {
-		t.Fatalf("want response %s, got %s\n", wResp, resp)
+	want := b0 + b0 + b1 + b1 + b1 + b1 + b0 + b0 + b0 + bEnd + b0 + b0 + b0 + b1 + b1 + b1 + b1 + b0 + b0
+	got := w.Body.String()
+	if want != got {
+		t.Fatalf("want %s, got %s", want, got)
+	}
+
+	w, err = record(h1)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	want = b0 + b0 + b1 + b1 + b1 + b1 + b1 + b0 + b0 + bEnd + b0 + b0 + b1 + b1 + b1 + b1 + b1 + b0 + b0
+	got = w.Body.String()
+	if want != got {
+		t.Fatalf("want %s, got %s", want, got)
 	}
 }
 
-func nestedHandler0(n http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(b0))
-		n.ServeHTTP(w, r)
-		_, _ = w.Write([]byte(b0))
-	})
-}
-
-func nestedHandler1(n http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(b1))
-		n.ServeHTTP(w, r)
-		_, _ = w.Write([]byte(b1))
-	})
+func nestedHandler(msg string) func(http.Handler) http.Handler {
+	return func(n http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(msg))
+			n.ServeHTTP(w, r)
+			_, _ = w.Write([]byte(msg))
+		})
+	}
 }
 
 func endHandler(w http.ResponseWriter, r *http.Request) {

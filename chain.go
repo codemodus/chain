@@ -14,10 +14,28 @@ func New(handlers ...func(http.Handler) http.Handler) Chain {
 	return Chain{hs: handlers}
 }
 
+// appendHandlers differs from the append built-in in that it does not set the
+// cap of the currently tracked handlers slice beyond it's required length.
+// This ensures that additional appending produces expected results instead of
+// allowing for the potential of collision/overwriting.
+func appendHandlers(hs []func(http.Handler) http.Handler, ahs ...func(http.Handler) http.Handler) []func(http.Handler) http.Handler {
+	lcur := len(hs)
+	ltot := lcur + len(ahs)
+	if ltot > cap(hs) {
+		nhs := make([]func(http.Handler) http.Handler, ltot)
+		copy(nhs, hs)
+		hs = nhs
+	}
+
+	copy(hs[lcur:], ahs)
+
+	return hs
+}
+
 // Append receives one or more nested http.Handler instances, and appends the
 // value to the returned Chain.
 func (c Chain) Append(handlers ...func(http.Handler) http.Handler) Chain {
-	c.hs = append(c.hs, handlers...)
+	c.hs = appendHandlers(c.hs, handlers...)
 
 	return c
 }
@@ -25,7 +43,7 @@ func (c Chain) Append(handlers ...func(http.Handler) http.Handler) Chain {
 // Merge receives one or more Chain instances, and returns a merged Chain.
 func (c Chain) Merge(chains ...Chain) Chain {
 	for k := range chains {
-		c.hs = append(c.hs, chains[k].hs...)
+		c.hs = appendHandlers(c.hs, chains[k].hs...)
 	}
 
 	return c

@@ -13,83 +13,107 @@ var (
 )
 
 func TestUnitAppend(t *testing.T) {
-	c := New(emptyNestedHandler)
-	c = c.Append(emptyNestedHandler)
+	c := New(nestedHandler(b0), nestedHandler(b1))
+	c = c.Append(nestedHandler(b1))
 
-	if 2 != len(c.hs) {
-		t.Fatalf("want chain hs with len %d, got %d\n", 2, len(c.hs))
+	want, got := 3, len(c.hs)
+	if want != got {
+		t.Errorf("want %d, got %d", want, got)
+	}
+
+	// should be same order as above, doubled - nestedHandler(b0) == "00"
+	wResp := b0 + b0 + b1 + b1 + b1 + b1
+	gResp, err := handlersToString(c.hs)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+	if wResp != gResp {
+		t.Errorf("want %s, got %s\n", wResp, gResp)
 	}
 }
 
 func TestUnitMerge(t *testing.T) {
-	c1 := New(emptyNestedHandler)
-	c2 := New(emptyNestedHandler, emptyNestedHandler)
+	c1 := New(nestedHandler(b0))
+	c2 := New(nestedHandler(b1), nestedHandler(b0))
 	c3 := c1.Merge(c2)
 
-	if 3 != len(c3.hs) {
-		t.Fatalf("want chain hs with len %d, got %d\n", 3, len(c3.hs))
+	want, got := 3, len(c3.hs)
+	if want != got {
+		t.Errorf("want %d, got %d", want, got)
+	}
+
+	// should be same order as above, doubled - nestedHandler(b0) == "00"
+	wResp := b0 + b0 + b1 + b1 + b0 + b0
+	gResp, err := handlersToString(c3.hs)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+	if wResp != gResp {
+		t.Errorf("want %s, got %s\n", wResp, gResp)
 	}
 }
 
 func TestUnitEnd(t *testing.T) {
-	c := New(nestedHandler0)
-	h := c.End(http.HandlerFunc(endHandler))
+	c := New(nestedHandler(b0), nestedHandler(b1))
+	nh := c.End(nil)
+	h1 := c.End(http.HandlerFunc(endHandler))
 
-	w, err := record(h)
+	w, err := record(nh)
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	if http.StatusOK != w.Code {
-		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
+	wCode, gCode := http.StatusOK, w.Code
+	if wCode != gCode {
+		t.Errorf("want %d, got %d", wCode, gCode)
 	}
 
-	resp := w.Body.String()
-	wResp := b0 + bEnd + b0
-	if wResp != resp {
-		t.Fatalf("want response %s, got %s\n", wResp, resp)
-	}
-}
-
-func TestUnitEndNilHandler(t *testing.T) {
-	c := New(emptyNestedHandler)
-	h := c.End(nil)
-
-	w, err := record(h)
-	if err != nil {
-		t.Fatalf("unexpected error: %s\n", err.Error())
+	w, err = record(h1)
+	if nil != err {
+		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	if http.StatusOK != w.Code {
-		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
+	wCode, gCode = http.StatusOK, w.Code
+	if wCode != gCode {
+		t.Errorf("want %d, got %d", wCode, gCode)
+	}
+
+	wResp := b0 + b1 + bEnd + b1 + b0
+	gResp := w.Body.String()
+	if wResp != gResp {
+		t.Errorf("want %s, got %s\n", wResp, gResp)
 	}
 }
 
 func TestUnitEndFn(t *testing.T) {
-	c := New(emptyNestedHandler)
-	h := c.EndFn(endHandler)
+	c := New(nestedHandler(b1), nestedHandler(b0))
+	nh := c.EndFn(nil)
+	h1 := c.EndFn(endHandler)
 
-	w, err := record(h)
+	w, err := record(nh)
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	if http.StatusOK != w.Code {
-		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
-	}
-}
-
-func TestUnitEndFnNilHandler(t *testing.T) {
-	c := New(emptyNestedHandler)
-	h := c.EndFn(nil)
-
-	w, err := record(h)
-	if err != nil {
-		t.Fatalf("unexpected error: %s\n", err.Error())
+	wCode, gCode := http.StatusOK, w.Code
+	if wCode != gCode {
+		t.Errorf("want %d, got %d", wCode, gCode)
 	}
 
-	if http.StatusOK != w.Code {
-		t.Fatalf("want status %d, got %d\n", http.StatusOK, w.Code)
+	w, err = record(h1)
+	if nil != err {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	wCode, gCode = http.StatusOK, w.Code
+	if wCode != gCode {
+		t.Errorf("want %d, got %d", wCode, gCode)
+	}
+
+	wResp := b1 + b0 + bEnd + b0 + b1
+	gResp := w.Body.String()
+	if wResp != gResp {
+		t.Errorf("want %s, got %s\n", wResp, gResp)
 	}
 }
 
@@ -105,20 +129,28 @@ func record(h http.Handler) (*httptest.ResponseRecorder, error) {
 	return w, nil
 }
 
-func nestedHandler0(n http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(b0))
-		n.ServeHTTP(w, r)
-		_, _ = w.Write([]byte(b0))
-	})
+func handlersToString(hs []func(http.Handler) http.Handler) (string, error) {
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest("GET", "", nil)
+	if err != nil {
+		return "", err
+	}
+
+	for _, fn := range hs {
+		fn(http.HandlerFunc(emptyHandler)).ServeHTTP(w, r)
+	}
+
+	return w.Body.String(), err
 }
 
-func nestedHandler1(n http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(b1))
-		n.ServeHTTP(w, r)
-		_, _ = w.Write([]byte(b1))
-	})
+func nestedHandler(msg string) func(http.Handler) http.Handler {
+	return func(n http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(msg))
+			n.ServeHTTP(w, r)
+			_, _ = w.Write([]byte(msg))
+		})
+	}
 }
 
 func endHandler(w http.ResponseWriter, r *http.Request) {

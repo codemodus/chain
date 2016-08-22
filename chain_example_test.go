@@ -68,3 +68,19 @@ func respBody(url string) (string, error) {
 
 	return string(body), nil
 }
+
+func nestedHandler0(n http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(b0))
+		n.ServeHTTP(w, r)
+		_, _ = w.Write([]byte(b0))
+	})
+}
+
+func nestedHandler1(n http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(b1))
+		n.ServeHTTP(w, r)
+		_, _ = w.Write([]byte(b1))
+	})
+}
