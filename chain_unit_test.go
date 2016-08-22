@@ -12,14 +12,6 @@ var (
 	bEnd = "_END_"
 )
 
-func TestUnitNew(t *testing.T) {
-	c := New(emptyNestedHandler)
-
-	if nil == c.hs {
-		t.Fatal("want new chain with hs set, got nil")
-	}
-}
-
 func TestUnitAppend(t *testing.T) {
 	c := New(emptyNestedHandler)
 	c = c.Append(emptyNestedHandler)
