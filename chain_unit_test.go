@@ -16,19 +16,19 @@ func TestUnitAppend(t *testing.T) {
 	c := New(nestedHandler(b0), nestedHandler(b1))
 	c = c.Append(nestedHandler(b1))
 
-	want, got := 3, len(c.hs)
-	if want != got {
-		t.Errorf("want %d, got %d", want, got)
+	got, want := len(c.hs), 3
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
 	}
 
 	// should be same order as above, doubled - nestedHandler(b0) == "00"
-	wResp := b0 + b0 + b1 + b1 + b1 + b1
 	gResp, err := handlersToString(c.hs)
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
-	if wResp != gResp {
-		t.Errorf("want %s, got %s\n", wResp, gResp)
+	wResp := b0 + b0 + b1 + b1 + b1 + b1
+	if gResp != wResp {
+		t.Errorf("got %s, want %s\n", gResp, wResp)
 	}
 }
 
@@ -37,19 +37,19 @@ func TestUnitMerge(t *testing.T) {
 	c2 := New(nestedHandler(b1), nestedHandler(b0))
 	c3 := c1.Merge(c2)
 
-	want, got := 3, len(c3.hs)
-	if want != got {
-		t.Errorf("want %d, got %d", want, got)
+	got, want := len(c3.hs), 3
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
 	}
 
 	// should be same order as above, doubled - nestedHandler(b0) == "00"
-	wResp := b0 + b0 + b1 + b1 + b0 + b0
 	gResp, err := handlersToString(c3.hs)
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
-	if wResp != gResp {
-		t.Errorf("want %s, got %s\n", wResp, gResp)
+	wResp := b0 + b0 + b1 + b1 + b0 + b0
+	if gResp != wResp {
+		t.Errorf("got %s, want %s\n", gResp, wResp)
 	}
 }
 
@@ -63,9 +63,9 @@ func TestUnitEnd(t *testing.T) {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	wCode, gCode := http.StatusOK, w.Code
-	if wCode != gCode {
-		t.Errorf("want %d, got %d", wCode, gCode)
+	gCode, wCode := w.Code, http.StatusOK
+	if gCode != wCode {
+		t.Errorf("got %d, want %d", gCode, wCode)
 	}
 
 	w, err = record(h1)
@@ -73,15 +73,15 @@ func TestUnitEnd(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	wCode, gCode = http.StatusOK, w.Code
-	if wCode != gCode {
-		t.Errorf("want %d, got %d", wCode, gCode)
+	gCode, wCode = w.Code, http.StatusOK
+	if gCode != wCode {
+		t.Errorf("got %d, want %d", gCode, wCode)
 	}
 
-	wResp := b0 + b1 + bEnd + b1 + b0
 	gResp := w.Body.String()
-	if wResp != gResp {
-		t.Errorf("want %s, got %s\n", wResp, gResp)
+	wResp := b0 + b1 + bEnd + b1 + b0
+	if gResp != wResp {
+		t.Errorf("got %s, want %s\n", gResp, wResp)
 	}
 }
 
@@ -95,9 +95,9 @@ func TestUnitEndFn(t *testing.T) {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
 
-	wCode, gCode := http.StatusOK, w.Code
-	if wCode != gCode {
-		t.Errorf("want %d, got %d", wCode, gCode)
+	gCode, wCode := w.Code, http.StatusOK
+	if gCode != wCode {
+		t.Errorf("got %d, want %d", gCode, wCode)
 	}
 
 	w, err = record(h1)
@@ -105,15 +105,15 @@ func TestUnitEndFn(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	wCode, gCode = http.StatusOK, w.Code
-	if wCode != gCode {
-		t.Errorf("want %d, got %d", wCode, gCode)
+	gCode, wCode = w.Code, http.StatusOK
+	if gCode != wCode {
+		t.Errorf("got %d, want %d", gCode, wCode)
 	}
 
-	wResp := b1 + b0 + bEnd + b0 + b1
 	gResp := w.Body.String()
-	if wResp != gResp {
-		t.Errorf("want %s, got %s\n", wResp, gResp)
+	wResp := b1 + b0 + bEnd + b0 + b1
+	if gResp != wResp {
+		t.Errorf("got %s, want %s\n", gResp, wResp)
 	}
 }
 

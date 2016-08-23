@@ -35,10 +35,10 @@ func TestFuncHandlerOrder(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	want := b0 + b0 + b1 + b1 + b1 + b1 + b0 + b0 + b0 + bEnd + b0 + b0 + b0 + b1 + b1 + b1 + b1 + b0 + b0
 	got := w.Body.String()
-	if want != got {
-		t.Fatalf("want %s, got %s", want, got)
+	want := b0 + b0 + b1 + b1 + b1 + b1 + b0 + b0 + b0 + bEnd + b0 + b0 + b0 + b1 + b1 + b1 + b1 + b0 + b0
+	if got != want {
+		t.Fatalf("got %s, want %s", got, want)
 	}
 
 	w, err = record(h1)
@@ -46,10 +46,10 @@ func TestFuncHandlerOrder(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	want = b0 + b0 + b1 + b1 + b1 + b1 + b1 + b0 + b0 + bEnd + b0 + b0 + b1 + b1 + b1 + b1 + b1 + b0 + b0
 	got = w.Body.String()
-	if want != got {
-		t.Fatalf("want %s, got %s", want, got)
+	want = b0 + b0 + b1 + b1 + b1 + b1 + b1 + b0 + b0 + bEnd + b0 + b0 + b1 + b1 + b1 + b1 + b1 + b0 + b0
+	if got != want {
+		t.Fatalf("got %s, want %s", got, want)
 	}
 }
 
