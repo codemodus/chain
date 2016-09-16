@@ -15,6 +15,31 @@ func Example() {
 	//
 	// endHandler writes "_END_" to the response body.
 
+	ch := chain.New(nestedHandler0, nestedHandler1)
+	ch = ch.Append(nestedHandler0)
+
+	mux := http.NewServeMux()
+	mux.Handle("/010_End", ch.EndFn(endHandler))
+
+	server := httptest.NewServer(mux)
+
+	resp, err := respBody(server.URL + "/010_End")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Chain 010 Resp:", resp)
+
+	// Output:
+	// Chain 010 Resp: 010_END_010
+}
+
+func Example_advanced() {
+	// Nested handlers write either "0" or "1" to the response body before
+	// and after ServeHTTP() is called.
+	//
+	// endHandler writes "_END_" to the response body.
+
 	ch00 := chain.New(nestedHandler0, nestedHandler0)
 	ch001 := ch00.Append(nestedHandler1)
 
