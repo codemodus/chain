@@ -10,8 +10,8 @@ type Chain struct {
 
 // New receives one or more nested http.Handler instances, and returns a new
 // Chain.
-func New(handlers ...func(http.Handler) http.Handler) Chain {
-	return Chain{hs: handlers}
+func New(handlers ...func(http.Handler) http.Handler) *Chain {
+	return &Chain{hs: handlers}
 }
 
 // appendHandlers differs from the append built-in in that it does not set the
@@ -34,24 +34,34 @@ func appendHandlers(hs []func(http.Handler) http.Handler, ahs ...func(http.Handl
 
 // Append receives one or more nested http.Handler instances, and appends the
 // value to the returned Chain.
-func (c Chain) Append(handlers ...func(http.Handler) http.Handler) Chain {
-	c.hs = appendHandlers(c.hs, handlers...)
+func (c *Chain) Append(handlers ...func(http.Handler) http.Handler) *Chain {
+	c = New(appendHandlers(c.hs, handlers...)...)
 
 	return c
 }
 
 // Merge receives one or more Chain instances, and returns a merged Chain.
-func (c Chain) Merge(chains ...Chain) Chain {
+func (c *Chain) Merge(chains ...*Chain) *Chain {
 	for k := range chains {
-		c.hs = appendHandlers(c.hs, chains[k].hs...)
+		c = New(appendHandlers(c.hs, chains[k].hs...)...)
 	}
 
 	return c
 }
 
+// Copy receives one Chain instance, and copies it's handlers into the
+// receiver's handlers slice.
+func (c *Chain) Copy(chain *Chain) {
+	c.hs = make([]func(http.Handler) http.Handler, len(chain.hs))
+
+	for k := range chain.hs {
+		c.hs[k] = chain.hs[k]
+	}
+}
+
 // End receives an http.Handler, and returns an http.Handler comprised of all
 // nested http.Handler data where the received http.Handler is the endpoint.
-func (c Chain) End(handler http.Handler) http.Handler {
+func (c *Chain) End(handler http.Handler) http.Handler {
 	if handler == nil {
 		handler = http.HandlerFunc(emptyHandler)
 	}
@@ -65,7 +75,7 @@ func (c Chain) End(handler http.Handler) http.Handler {
 
 // EndFn receives an instance of http.HandlerFunc, then passes it to End to
 // return an http.Handler.
-func (c Chain) EndFn(handlerFunc http.HandlerFunc) http.Handler {
+func (c *Chain) EndFn(handlerFunc http.HandlerFunc) http.Handler {
 	if handlerFunc == nil {
 		handlerFunc = http.HandlerFunc(emptyHandler)
 	}

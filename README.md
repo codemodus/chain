@@ -12,11 +12,12 @@ adding a dependency to your project.
 
 ```go
 type Chain
-    func New(handlers ...func(http.Handler) http.Handler) Chain
-    func (c Chain) Append(handlers ...func(http.Handler) http.Handler) Chain
-    func (c Chain) End(handler http.Handler) http.Handler
-    func (c Chain) EndFn(handlerFunc http.HandlerFunc) http.Handler
-    func (c Chain) Merge(chains ...Chain) Chain
+    func New(handlers ...func(http.Handler) http.Handler) *Chain
+    func (c *Chain) Append(handlers ...func(http.Handler) http.Handler) *Chain
+    func (c *Chain) Copy(chain *Chain)
+    func (c *Chain) End(handler http.Handler) http.Handler
+    func (c *Chain) EndFn(handlerFunc http.HandlerFunc) http.Handler
+    func (c *Chain) Merge(chains ...*Chain) *Chain
 ```
 
 ### Setup
@@ -92,12 +93,12 @@ View the [GoDoc](http://godoc.org/github.com/codemodus/chain)
 These results are for comparison of normally nested functions, and chained 
 functions.  Each benchmark includes 10 functions prior to the final handler.
 
-    go1.7rc6
-    benchmark             iter       time/iter   bytes alloc         allocs
-    ---------             ----       ---------   -----------         ------
-    BenchmarkChain10     30000     61.08 μs/op     3684 B/op   51 allocs/op
-    BenchmarkChain10-4   20000     75.28 μs/op     3691 B/op   51 allocs/op
-    BenchmarkChain10-8   20000     76.21 μs/op     3695 B/op   51 allocs/op
-    BenchmarkNest10      30000     59.57 μs/op     3684 B/op   51 allocs/op
-    BenchmarkNest10-4    20000     74.74 μs/op     3692 B/op   51 allocs/op
-    BenchmarkNest10-8    20000     75.65 μs/op     3697 B/op   51 allocs/op
+    go1.7
+    benchmark             iter      time/iter   bytes alloc         allocs
+    ---------             ----      ---------   -----------         ------
+    BenchmarkChain10     20000    61.01 μs/op     3684 B/op   51 allocs/op
+    BenchmarkChain10-4   20000    68.62 μs/op     3691 B/op   51 allocs/op
+    BenchmarkChain10-8   20000    69.33 μs/op     3696 B/op   51 allocs/op
+    BenchmarkNest10      20000    60.36 μs/op     3684 B/op   51 allocs/op
+    BenchmarkNest10-4    20000    70.82 μs/op     3692 B/op   51 allocs/op
+    BenchmarkNest10-8    20000    71.03 μs/op     3697 B/op   51 allocs/op

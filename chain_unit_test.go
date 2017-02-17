@@ -14,9 +14,15 @@ var (
 
 func TestUnitAppend(t *testing.T) {
 	c := New(nestedHandler(b0), nestedHandler(b1))
-	c = c.Append(nestedHandler(b1))
+	c2 := c.Append(nestedHandler(b1))
+	c = c.Append(nestedHandler(b0))
 
 	got, want := len(c.hs), 3
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+
+	got, want = len(c2.hs), 3
 	if got != want {
 		t.Errorf("got %d, want %d", got, want)
 	}
@@ -26,7 +32,16 @@ func TestUnitAppend(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
-	wResp := b0 + b0 + b1 + b1 + b1 + b1
+	wResp := b0 + b0 + b1 + b1 + b0 + b0
+	if gResp != wResp {
+		t.Errorf("got %s, want %s\n", gResp, wResp)
+	}
+
+	gResp, err = handlersToString(c2.hs)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+	wResp = b0 + b0 + b1 + b1 + b1 + b1
 	if gResp != wResp {
 		t.Errorf("got %s, want %s\n", gResp, wResp)
 	}
@@ -37,19 +52,58 @@ func TestUnitMerge(t *testing.T) {
 	c2 := New(nestedHandler(b1), nestedHandler(b0))
 	c3 := c1.Merge(c2)
 
-	got, want := len(c3.hs), 3
+	got, want := len(c1.hs), 1
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+
+	got, want = len(c3.hs), 3
 	if got != want {
 		t.Errorf("got %d, want %d", got, want)
 	}
 
 	// should be same order as above, doubled - nestedHandler(b0) == "00"
-	gResp, err := handlersToString(c3.hs)
+	gResp, err := handlersToString(c1.hs)
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n", err.Error())
 	}
-	wResp := b0 + b0 + b1 + b1 + b0 + b0
+	wResp := b0 + b0
 	if gResp != wResp {
 		t.Errorf("got %s, want %s\n", gResp, wResp)
+	}
+
+	gResp, err = handlersToString(c3.hs)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+	wResp = b0 + b0 + b1 + b1 + b0 + b0
+	if gResp != wResp {
+		t.Errorf("got %s, want %s\n", gResp, wResp)
+	}
+}
+
+func TestUnitCopy(t *testing.T) {
+	c := New(nestedHandler(b0), nestedHandler(b1))
+	c2 := c.Append(nestedHandler(b0))
+	c.Copy(c2)
+
+	// should be same order as above, doubled - nestedHandler(b0) == "00"
+	got, err := handlersToString(c.hs)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+	want := b0 + b0 + b1 + b1 + b0 + b0
+	if got != want {
+		t.Errorf("got %s, want %s\n", got, want)
+	}
+
+	got, err = handlersToString(c2.hs)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n", err.Error())
+	}
+	want = b0 + b0 + b1 + b1 + b0 + b0
+	if got != want {
+		t.Errorf("got %s, want %s\n", got, want)
 	}
 }
 
