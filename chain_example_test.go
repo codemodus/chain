@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/codemodus/chain"
+	"github.com/codemodus/chain/v2"
 )
 
 func Example() {

@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/codemodus/chain"
+	"github.com/codemodus/chain/v2"
 )
 
 var (
